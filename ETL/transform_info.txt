@@ -1,0 +1,20 @@
+The transformer is a reproducible, modular pipeline of R code whose sole purpose is to turn raw scraped tennis data into clean, information-rich, 
+machine-learning–ready datasets. It sits between the HTML scrapers (extractors) and the modeling layer, consuming the raw match, player, tournament, and stats tables and emitting tidy Parquet/CSV artifacts 
+with well-documented schemas. The pipeline is orchestrated as a sequence of R stages (e.g., via {targets} or {drake}) so every step is declarative, cacheable, and incrementally rebuilds only what changed. Code is organized
+into small functions under R/, with config in YAML, unit tests with {testthat}, and dependency management with {renv} for full reproducibility.
+
+Ingestion normalizes types and keys (dates, numeric stats, country codes), resolves entities (player codes, tournament IDs), and enforces schema contracts with explicit assertions. 
+Cleaning de-duplicates rows, fixes known score anomalies, handles missing values with principled imputation strategies, and standardizes categorical levels across seasons and surfaces. All data manipulation relies on 
+high-performance idioms ({data.table} for speed, or {dplyr} where readability matters), with careful memory management to handle multi-million-row histories.
+
+Feature engineering is extensive and time-aware to avoid leakage. For each player and surface, the pipeline computes rolling and expanding aggregates
+over configurable windows (e.g., last 3 months, last 12 months, last 3 seasons): service and return KPIs, tie-break rates, break-point save/convert rates, serve-speed summaries, form streaks,
+fatigue proxies (matches in previous N days), travel/load indicators, and opponent-adjusted metrics. Head-to-head features are generated both globally and surface-specific, including counts, win ratios, 
+and recent H2H deltas. Pairwise match records are constructed by joining the two players’ feature sets at match time and producing symmetrized features (absolute differences, ratios, and signed deltas with 
+respect to the prospective winner). Categorical variables (surface, series category, indoor/outdoor, round) are encoded through one-hot or learned embeddings; numeric features are centered/scaled with recipes from {tidymodels}.
+Outliers are capped with robust rules, and zero/near-zero variance features are removed.
+
+The transformer includes optional feature selection passes (Boruta, permutation importance on a validation fold) and persists a data dictionary describing each engineered variable,
+its windowing rule, and provenance. Splitting is chronological (rsample rolling origin or time-series cross-validation) to respect temporal order; all joins and windows are cut at the match timestamp 
+to prevent target leakage. Final outputs are partitioned Parquet files and compact CSVs ready for downstream modeling (e.g., Python XGBoost), plus metadata about class balance, missingness, 
+and feature distributions. Logging captures run IDs, input hashes, and row counts at each step for full auditability, and the whole pipeline executes for a single season or the entire historical range in parallel batches.
