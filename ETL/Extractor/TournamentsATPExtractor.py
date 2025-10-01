@@ -3,7 +3,7 @@ from urllib.parse import urljoin
 from lxml import html
 import os
 
-from base_extractor import baseExtractor  # nueva base
+from base_extractor import baseExtractor  
 from constants import ATP_URL_PREFIX, ATP_TOURNAMENT_SERIES
 
 
