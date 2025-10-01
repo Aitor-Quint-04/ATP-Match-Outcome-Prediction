@@ -1,0 +1,22 @@
+CREATE TABLE stg_tournaments (
+  id               VARCHAR2(64),
+  name             VARCHAR2(128),
+  year             NUMBER(4),
+  code             VARCHAR2(48),
+  url              VARCHAR2(256),
+  slug             VARCHAR2(128),
+  location         VARCHAR2(128),
+  sgl_draw_url     VARCHAR2(256),
+  sgl_pdf_url      VARCHAR2(256),
+  indoor_outdoor   VARCHAR2(8),
+  surface          VARCHAR2(8),
+  series           VARCHAR2(8),
+  start_dtm        VARCHAR2(10),
+  finish_dtm       VARCHAR2(10),
+  sgl_draw_qty     NUMBER(4),
+  dbl_draw_qty     NUMBER(4),
+  prize_money      NUMBER(10),
+  prize_currency   VARCHAR2(16),
+  country_name     VARCHAR2(256),
+  country_code     VARCHAR2(3)
+);
