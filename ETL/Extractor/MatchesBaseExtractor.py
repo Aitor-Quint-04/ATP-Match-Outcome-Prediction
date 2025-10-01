@@ -1,5 +1,5 @@
 from typing import Dict, Optional, List, Tuple
-from base_extractor import baseExtractor  # ← nuevo nombre de la base
+from base_extractor import baseExtractor  
 
 class MatchesBaseExtractor(baseExtractor):
     """
