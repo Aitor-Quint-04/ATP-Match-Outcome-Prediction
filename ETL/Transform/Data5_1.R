@@ -1,20 +1,94 @@
 # =============================================================================
 # ATP Ranking Trends & Enrichment (Players + Opponents) — 1999–2025
 # -----------------------------------------------------------------------------
-# Purpose
-#   Enrich a player-centric matches dataset with:
-#     • ATP rankings as of the day BEFORE each match’s tournament start
-#     • Short-term ranking trends (4 and 12 weeks) for both player & opponent
-#     • Adaptive trend categories ("subida", "estable", "bajada")
-#     • Rank differentials (opponent − player)
-#     • Log features: log(opponent/player) and distance-to-peak (if peaks exist)
-#     • Home flags (citizenship == tournament country)
+# What this script does
+#   • Enriches a player-centric matches dataset with:
+#       - ATP rankings for player and opponent as of the day BEFORE each match’s
+#         tournament start (strictly no look-ahead; rolling join to the latest
+#         snapshot ≤ target date).
+#       - Short-term ranking trends over 4 weeks (28 days) and 12 weeks (84 days),
+#         for both player and opponent.
+#       - Adaptive trend CATEGORIES ("subida", "estable", "bajada") that scale the
+#         required movement with the magnitude of the players’ ranks.
+#       - Rank DIFFERENTIALS (opponent − player) at match time.
+#       - LOG features: log(opponent/player) and log distance-to-peak ranking,
+#         which are scale-invariant and robust for modeling.
+#       - HOME flags: whether a player’s citizenship matches the tournament country.
+#   • Produces a single enriched CSV (overwrites: pred_jugadores_99-25.csv) and
+#     prints compact summaries of trend distributions and missingness.
 #
-# Notes
-#   • Uses data.table for efficient rolling joins (no look-ahead).
-#   • Trends use symmetric adaptive thresholds based on max(r_t, r_t-N).
-#   • Output overwrites: pred_jugadores_99-25.csv
-#   • The script prints compact summaries of trend category proportions and NA rates.
+# Data hygiene & ordering
+#   • Ordering is stable and match-aware: by tournament_start_dtm → tournament_name
+#     → tournament_id → round (ordered factor) → match_order.
+#   • Rankings are taken via data.table rolling joins with roll = Inf so each target
+#     date (t−1 day) receives the last available snapshot at or before that date.
+#   • If no prior snapshot exists, the rank is NA and downstream trend/category are NA.
+#
+# Exact trend formulas (lower rank numbers are better)
+#   Let r(t) be the rank on the day before the tournament (t = match context),
+#   r(t−4w) the rank 28 days earlier, and r(t−12w) the rank 84 days earlier.
+#
+#   PLAYER trends:
+#     trend_4w  = r_player(t−4w)  − r_player(t)
+#     trend_12w = r_player(t−12w) − r_player(t)
+#
+#   OPPONENT trends:
+#     trend_4w  = r_opp(t−4w)  − r_opp(t)
+#     trend_12w = r_opp(t−12w) − r_opp(t)
+#
+#   Interpretation:
+#     • Positive trend  => improvement (e.g., 50 → 45 gives +5).
+#     • Negative trend  => decline    (e.g., 45 → 50 gives −5).
+#     • Zero            => unchanged.
+#
+# Adaptive thresholds (minimum movement required to be considered a trend)
+#   We use symmetric, magnitude-aware thresholds so a #1 player doesn’t get
+#   labeled “volatile” for 1–2 place wiggles, while a #200 player needs a larger
+#   absolute move to be considered a clear trend. Thresholds are based on the
+#   maximum of the two ranks involved (current and lagged), with a floor of 1:
+#
+#     PLAYER:
+#       thr_4w  = max( 1, ceil( 0.02 * max( r_player(t), r_player(t−4w)  ) ) )
+#       thr_12w = max( 1, ceil( 0.05 * max( r_player(t), r_player(t−12w) ) ) )
+#
+#     OPPONENT:
+#       thr_4w  = max( 1, ceil( 0.02 * max( r_opp(t),    r_opp(t−4w)     ) ) )
+#       thr_12w = max( 1, ceil( 0.05 * max( r_opp(t),    r_opp(t−12w)    ) ) )
+#
+#   Heuristics:
+#     • 4-week window requires ~2% movement of the larger involved rank (min 1).
+#     • 12-week window requires ~5% movement of the larger involved rank (min 1).
+#     • Using max(·) ensures symmetry and avoids under-thresholding when the
+#       current rank briefly improves or worsens near the boundary.
+#
+# Trend categorization rule
+#   Given trend Δ and threshold θ for a window:
+#     • "subida"  if  Δ ≥  +θ   (clear improvement)
+#     • "bajada"  if  Δ ≤  −θ   (clear decline)
+#     • "estable" otherwise     (movement within noise band)
+#
+# Rank differentials
+#   • rank_diff_t = r_opp(t) − r_player(t). Positive values mean the opponent’s
+#     *number* is worse (higher) than the player’s; negative favors opponent.
+#   • trend_diff_4w = opp_trend_4w − player_trend_4w (and analogously for 12w).
+#
+# Log-scaled features
+#   • log_rank_ratio_t = log( r_opp(t) ) − log( r_player(t) ) = log( r_opp(t) / r_player(t) )
+#     (well-defined when both ranks > 0). This is a scale-invariant contrast.
+#   • log distance-to-peak:
+#       player:   log( r_player(t) )   − log( best_player_so_far )
+#       opponent: log( r_opp(t)   )    − log( best_opp_so_far )
+#     Equals 0 at peak (current equals historical best); positive means worse than peak.
+#     These use *highest* historical rankings if present in the dataset; otherwise NA.
+#
+# Home advantage flags
+#   • player_home/opponent_home = 1 if citizenship == tournament_country, else 0 (NA-safe).
+#
+# I/O summary
+#   • Input:  pred_jugadores_99-25.csv (player-centric matches), plus a folder of
+#     daily/weekly ranking snapshots named rankings_YYYY-MM-DD.csv.
+#   • Output: pred_jugadores_99-25.csv overwritten with all new features.
+#   • Console: distribution tables for trend categories and a top-NA report.
 # =============================================================================
 
 suppressPackageStartupMessages({
