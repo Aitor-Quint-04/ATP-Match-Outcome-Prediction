@@ -236,7 +236,7 @@ git clone https://github.com/Aitor-Quint-04/ATP-Match-Outcome-Prediction.git
 cd ATP-Match-Outcome-Prediction
 ```
 
-## 2) Install Python deps (example)
+## 2) Install Python deps 
 
 ```bash
 python -m pip install -U pandas numpy scipy scikit-learn xgboost beautifulsoup4 lxml selenium
