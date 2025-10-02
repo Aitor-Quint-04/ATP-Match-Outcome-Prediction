@@ -83,12 +83,6 @@ jugadores <- bind_rows(jugadores_na, oponentes_na) %>%
   arrange(code)
 
 # -- Persist artifacts --------------------------------------------------------
-write.table(
-  jugadores,
-  "players.txt",
-  row.names = FALSE
-) #  we'll use this registry lately to find the real player debuts on the ones whose *_turned_pro is NA so we can calculate their years experience
-
 write.csv(t_players, "pred_jugadores_99-25.csv", row.names = FALSE)
 write.csv(t_data,    "data_jugadores_99-25.csv", row.names = FALSE)
 
