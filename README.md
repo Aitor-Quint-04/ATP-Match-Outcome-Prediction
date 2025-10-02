@@ -156,36 +156,56 @@ ATP-Match-Outcome-Prediction/
 
 ### 1) Scraping & Parsing
 
-* **`Transform/Ranking Scrapping/Ranking_scrapping.py`** downloads **official ATP HTML** in **headless mode** and stores full HTML as text (`rankings_YYYY-mm-dd.txt`).
+**A. Core HTML Extractors (Python)**
+Located in `ETL/Extractor/`, these modules perform the **primary data extraction from ATP web pages (HTML scraping)** and normalize outputs for staging:
+
+* `ETL/Extractor/base_extractor.py` & `ETL/Extractor/constants.py` — shared session, headers, retries/backoff, helpers, and constants (URLs, paths, regexes). Designed for polite scraping.
+* `ETL/Extractor/MatchesATPExtractor.py` — crawls & parses match pages/feeds and prepares match-level records.
+* `ETL/Extractor/PlayersATPExtractor.py` — extracts player pages (bio/handedness/backhand, country, etc.).
+* `ETL/Extractor/TournamentsATPExtractor.py` — pulls tournament metadata (location, surface, category, indoor/outdoor).
+* `ETL/Extractor/StatsATPExtractor.py` — scrapes stats blocks where available and aligns them to match IDs/players.
+* `ETL/Extractor/MatchesATPSCoreUpdater.py` (score updater) — revisits in‑progress or newly finished matches to update scores/results consistently.
+
+> **Notes:** Extractors follow a "fetch → parse (BeautifulSoup) → normalize" pattern. Raw HTML/JSON can be cached locally to make runs reproducible and to minimize load on the origin.
+
+**B. Rankings Scrapers (headless) + Parser**
+
+* `Transform/Ranking Scrapping/Ranking_scrapping.py` — downloads **official ATP rankings HTML** in **headless mode** and stores full HTML as text (`rankings_YYYY-mm-dd.txt`).
   *This design is deliberate:* saving raw HTML first makes the pipeline **finite and reproducible**; you can re‑parse locally without revisiting the site.
-* **`Transform/Ranking Scrapping/rankings_to_csv.py`** parses those files and extracts **`ranking`** and **`player_code`** per date (robust to absolute/relative URLs and locale prefixes like `/es/`, `/en/`).
+* `Transform/Ranking Scrapping/rankings_to_csv.py` — parses those files and extracts **`ranking`** and **`player_code`** per date (robust to absolute/relative URLs and locale prefixes like `/es/`, `/en/`).
+
+---
 
 ### 2) SQL Staging & Business Logic
 
-* **Tables** under `ETL/SQL/Tables/Staging/` define the staging schema: matches, enriched matches, players, tournaments, rulebook, surfaces, etc.
+* **Tables** under `ETL/SQL/Tables/Staging/` define the staging schema: `atp_matches.sql`, `atp_matches_enriched.sql`, `atp_players.sql`, `atp_tournaments.sql`, `points_rulebook.sql`, `surfaces.sql`, etc.
 * **Procedures & functions** under `ETL/SQL/Procedures&Functions/` (files beginning with `sf_` / `sp_`) implement:
 
   * Delta and hash logic for incremental loads (`*_delta_hash.sql`).
-  * Player points rules application and enrichment (`sp_apply_points_rules.sql`, `sp_calculate_player_points.sql`, `sp_enrich_atp_matches.sql`).
-  * Merge/processing orchestration for matches, players, tournaments.
+  * Player points rules application & enrichment (`sp_apply_points_rules.sql`, `sp_calculate_player_points.sql`, `sp_enrich_atp_matches.sql`).
+  * Merge/processing orchestration for matches, players, tournaments (e.g., `sp_merge_atp_players.sql`, `sp_process_atp_matches.sql`).
 * **Views** in `ETL/SQL/views/` expose analytics‑ready joins: `vw_atp_matches.sql`, `vw_player_stats.sql`.
+
+---
 
 ### 3) ETL / Feature Engineering (R)
 
-* **`ETL/Load/CreateData.R`** and the **`Transform/Ranking Scrapping/DataTransform*.R`** scripts stitch everything into a **match–player** panel.
+* `ETL/Load/CreateData.R` and the series of `Transform/Ranking Scrapping/DataTransform*.R` scripts stitch everything into a **match–player** panel.
 * Feature highlights (mirrored for `player_*` and `opponent_*`):
 
-  * Rest and load: `*_days_since_prev_tournament`, `*_weeks_since_prev_tournament`, `*_prev_tour_matches`.
-  * Adaptation flags: `*_country_changed`, `*_continent_changed`, `*_surface_changed`, `*_indoor_changed`.
-  * Fatigue proxies: `*_back_to_back_week`, `*_two_weeks_gap`, `*_long_rest`, `*_red_eye_risk`, `*_travel_fatigue`.
+  * **Rest & load:** `*_days_since_prev_tournament`, `*_weeks_since_prev_tournament`, `*_prev_tour_matches`.
+  * **Adaptation flags:** `*_country_changed`, `*_continent_changed`, `*_surface_changed`, `*_indoor_changed`.
+  * **Fatigue proxies:** `*_back_to_back_week`, `*_two_weeks_gap`, `*_long_rest`, `*_red_eye_risk`, `*_travel_fatigue`.
+
+---
 
 ### 4) Modeling (Python, Jupyter)
 
-* **`MODEL/model1.ipynb`** implements:
+* `MODEL/model1.ipynb` implements:
 
   * `ColumnTransformer` (sparse **One‑Hot** for categoricals, numeric coercion to `float32`).
   * **XGBoost** (`tree_method=hist`) with early stopping.
-  * **CV by year (2000–2025)** with **`id` grouping**.
+  * **CV by year (2000–2025)** with **`id` grouping** (both rows of a match stay together).
   * **OOF 2000–2022** for **isotonic calibration**.
   * **Hold‑out 2023–2025** with breakdowns by tournament type and a **cost‑optimal threshold** utility.
 
