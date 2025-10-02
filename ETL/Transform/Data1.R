@@ -10,13 +10,15 @@
 # - Writes a dedicated match-stats artifact (e.g., match_stats_99-25.csv)
 #   that contains the per-match gameplay metrics
 # - Enriches with historical counts (<1999) if a Sackmann CSV is present
-# - Filters to players with > THRESHOLD_MIN_MATCHES total matches
+# - Filters to players with > THRESHOLD_MIN_MATCHES total matches (OPTIONAL)
+#   • Improves robustness of features by removing very small samples
+#   • BUT drops valuable information about rookies/rare players
+#   → Left commented out below; enable if you prefer stability > coverage
 # - Writes:
-#     - pred_jugadores_99-25.csv (player-centric, filtered)
-#     - data_jugadores_99-25.csv (player-centric, filtered, full columns)
+#     - pred_jugadores_99-25.csv (player-centric, optionally filtered)
+#     - data_jugadores_99-25.csv (player-centric, optionally filtered, full columns)
 #     - match_stats_99-25.csv (raw per-match gameplay stats for later FE)
 # ================================================================
-
 
 suppressPackageStartupMessages({
   library(dplyr)
@@ -28,7 +30,7 @@ suppressPackageStartupMessages({
 # -----------------------------
 INPUT_MATCHES_CSV    <- "all_matches_99-25.csv"
 INPUT_HISTORICAL_CSV <- ""  # optional
-THRESHOLD_MIN_MATCHES <- 20L  # keep players with > 20 total matches (historical + recent)
+THRESHOLD_MIN_MATCHES <- 20L  # threshold for OPTIONAL low-sample filtering
 
 OUT_PLAYER_PRED <- "pred_jugadores_99-25.csv"
 OUT_PLAYER_DATA <- "data_jugadores_99-25.csv"
@@ -154,11 +156,11 @@ present_stat_cols <- intersect(match_stats_cols, names(t_players))
 match_stats <- if (length(present_stat_cols)) t_players[, present_stat_cols, drop = FALSE] else NULL
 t_players   <- t_players %>% select(-dplyr::any_of(present_stat_cols))
 
-# Keep a copy before filtering (full column set)
+# Keep a copy before OPTIONAL filtering (full column set)
 t_data <- t_players
 
 # ================================================================
-# Historical enrichment and filtering by total matches
+# Historical enrichment and OPTIONAL filtering by total matches
 # ================================================================
 
 # 5) Read pre-1999 historical (optional). If not available, proceed without it.
@@ -213,24 +215,30 @@ if (nrow(players_low_n)) {
   cat("- Max (within group):", max(players_low_n$total_partidos, na.rm = TRUE), "\n\n")
 }
 
-# 9) Keep only players with > THRESHOLD_MIN_MATCHES total matches
-valid_players <- total_counts %>%
-  filter(total_partidos > THRESHOLD_MIN_MATCHES) %>%
-  pull(code)
+# ----------------------------------------------------------------
+# OPTIONAL FILTERING (commented out by default)
+# Trade-off:
+#   + Improves feature stability by removing tiny-sample players
+#   − Loses potentially important signal about rookies/rare players
+# Enable if you prefer stability > coverage:
+# ----------------------------------------------------------------
+# valid_players <- total_counts %>%
+#   filter(total_partidos > THRESHOLD_MIN_MATCHES) %>%
+#   pull(code)
+#
+# t_players <- t_players %>%
+#   filter(player_code %in% valid_players,
+#          opponent_code %in% valid_players)
+#
+# t_data <- t_data %>%
+#   filter(player_code %in% valid_players,
+#          opponent_code %in% valid_players)
 
-t_players <- t_players %>%
-  filter(player_code %in% valid_players,
-         opponent_code %in% valid_players)
-
-t_data <- t_data %>%
-  filter(player_code %in% valid_players,
-         opponent_code %in% valid_players)
-
-# 10) Post-filter diagnostics
-cat("=== Filtered dataset ===\n")
-cat("- Unique players remaining:", dplyr::n_distinct(t_players$player_code), "\n")
+# 9) Dataset diagnostics (after optional filtering, if applied)
+cat("=== Dataset summary (after optional filtering, if applied) ===\n")
+cat("- Unique players:", dplyr::n_distinct(t_players$player_code), "\n")
 cat("- Rows in t_players:", nrow(t_players), "\n")
-cat("- Unique matches remaining:", dplyr::n_distinct(t_players$id), "\n\n")
+cat("- Unique matches:", dplyr::n_distinct(t_players$id), "\n\n")
 
 players_dist <- t_players %>%
   left_join(total_counts, by = c("player_code" = "code", "player_name" = "name")) %>%
@@ -248,7 +256,7 @@ if (nrow(players_dist)) {
 }
 
 # -----------------------------
-# 11) Write outputs
+# 10) Write outputs
 # -----------------------------
 write.csv(t_players, OUT_PLAYER_PRED, row.names = FALSE)
 write.csv(t_data,    OUT_PLAYER_DATA, row.names = FALSE)
