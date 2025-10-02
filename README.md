@@ -68,7 +68,8 @@ ATP-Match-Outcome-Prediction/
 │  │  ├─ StatsATPExtractor.py
 │  │  ├─ TournamentsATPExtractor.py
 │  │  ├─ base_extractor.py
-│  │  └─ constants.py
+|  |  ├─ constants.py
+│  │  └─ runner.py
 │  │
 │  ├─ Load/
 │  │  └─ CreateData.R                 # R loader/assembler
@@ -140,7 +141,7 @@ ATP-Match-Outcome-Prediction/
   D --> E[Procedures & Functions (sf_*/sp_*)]
   E --> F[Views (vw_atp_matches, vw_player_stats)]
 
-  %% Python ETL extractors run AFTER SQL creation
+  %% Python ETL extractors run AFTER SQL creation (all run by runner.py)
   F --> X1[ETL/Extractor/TournamentsATPExtractor.py]
   X1 --> X2[ETL/Extractor/PlayersATPExtractor.py]
   X2 --> X3[ETL/Extractor/MatchesATPExtractor.py]
@@ -264,6 +265,8 @@ Load the scripts in this order:
 > Run from the repo root so relative imports/config resolve correctly.
 
 ```bash
+
+# 0) Run dependencies
 python "ETL/Extractor/base_extractor.py"
 python "ETL/Extractor/constants.py"
 python "ETL/Extractor/MatchesBaseExtractor.py"
@@ -279,6 +282,9 @@ python "ETL/Extractor/MatchesATPExtractor.py"
 
 # 4) Stats
 python "ETL/Extractor/StatsATPExtractor.py"
+
+# 5) Run the extractor (check the code)
+pyton "ETL/Extractor/runner.py"
 
 ```
 
