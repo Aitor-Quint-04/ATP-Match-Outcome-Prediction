@@ -7,7 +7,7 @@
 ## ✨ What is this?
 
 This repository brings together the **entire workflow** to predict ATP match outcomes from 1999 to today:
-**scraping → parsing → ETL → feature engineering → year‑wise validation → calibration → hold‑out evaluation** and, most importantly, a **curated longitudinal dataset** that’s the project’s **crown jewel**.
+**scraping → parsing → SQL staging → ETL/feature engineering → year‑wise validation → calibration → hold‑out evaluation** and, most importantly, a **curated longitudinal dataset** that’s the project’s **crown jewel**.
 
 You get two deliverables:
 
@@ -53,74 +53,134 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 ---
 
-## 🗂️ Repository structure (indicative)
+## 🗂️ Repository structure (actual file names)
 
 ```
 ATP-Match-Outcome-Prediction/
-├─ MODEL/
-│  └─ model1.ipynb           # Training + year-wise CV + OOF + calibration + hold-out
-├─ Scrapping/
-│  ├─ rankings_fetch.py      # Playwright (headless) — saves HTML per date
-│  └─ rankings_parse.py      # BeautifulSoup — produces per-date rankings CSV
+├─ Data_Example/
+│  └─ sample.csv                      # Tiny sample for quick inspection
+│
 ├─ ETL/
-│  ├─ rest_travel_proxies.R  # data.table/dplyr — feature engineering (both roles)
-│  └─ helpers/               # utilities, country→continent maps, etc.
-├─ data/                     # (suggested) intermediate inputs
-├─ output/                   # (suggested) enriched datasets / predictions
-└─ README.md                 # this document
+│  ├─ Extractor/
+│  │  ├─ MatchesATPExtractor.py
+│  │  ├─ MatchesATPSCoreUpdater.py
+│  │  ├─ MatchesBaseExtractor.py
+│  │  ├─ PlayersATPExtractor.py
+│  │  ├─ StatsATPExtractor.py
+│  │  ├─ TournamentsATPExtractor.py
+│  │  ├─ base_extractor.py
+│  │  └─ constants.py
+│  │
+│  ├─ Load/
+│  │  └─ CreateData.R                 # R loader/assembler
+│  │
+│  └─ SQL/
+│     ├─ Procedures&Functions/        # Stored procs & UDFs (sf_* / sp_*)
+│     ├─ Tables/
+│     │  └─ Staging/
+│     │     ├─ atp_matches.sql
+│     │     ├─ atp_matches_enriched.sql
+│     │     ├─ atp_players.sql
+│     │     ├─ atp_tournaments.sql
+│     │     ├─ countries.sql
+│     │     ├─ indoor_outdoor.sql
+│     │     ├─ match_scores_adjustments.sql
+│     │     ├─ player_points.sql
+│     │     ├─ points_rulebook.sql
+│     │     ├─ points_rules.sql
+│     │     ├─ series.sql
+│     │     ├─ series_category.sql
+│     │     ├─ stadies.sql            # (kept as‑is)
+│     │     └─ surfaces.sql
+│     └─ views/
+│        ├─ vw_atp_matches.sql
+│        └─ vw_player_stats.sql
+│
+├─ Transform/
+│  ├─ Ranking Scrapping/
+│  │  ├─ Ranking_scrapping.py         # Headless HTML fetch from atptour.com
+│  │  ├─ rankings_to_csv.py           # BeautifulSoup → per‑date rankings CSV
+│  │  ├─ DataTransform1.R
+│  │  ├─ DataTransform2.R
+│  │  ├─ DataTransform3.R
+│  │  ├─ DataTransform4.R
+│  │  ├─ DataTransform5_1.R
+│  │  ├─ DataTransform6.R
+│  │  ├─ DataTransform6_1.R
+│  │  ├─ DataTransform7.R
+│  │  ├─ DataTransform8.R
+│  │  ├─ DataTransform9.R
+│  │  ├─ DataTransform10.R
+│  │  ├─ DataTransform11.R
+│  │  ├─ DataTransform12.R
+│  │  ├─ readme.txt
+│  │  └─ transform_info.txt
+│  │
+│  └─ (other feature scripts live here)
+│
+├─ MODEL/
+│  └─ model1.ipynb                    # CV by year, OOF calibration, hold‑out 2023–2025
+│
+├─ LICENSE
+└─ README.md                          # You are here
 ```
+
+> **Note on dates file**: the rankings fetcher uses `fechas.txt` populated directly from ATP HTML. Example lines present in that file (as found in source pages):
+> `<option value="2025-09-22">2025.09.22</option>`
+> `<option value="2025-09-15">2025.09.15</option>`
+> …the **`value`** field is parsed as `YYYY-mm-dd`.
 
 ---
 
 ## 🧪 Pipeline at a glance
 
-```
+```mermaid
 flowchart LR
-  A[ATP Rankings HTML] --> B[Parsing (BeautifulSoup)]
-  B --> C[Per-date rankings CSV]
-  C --> D[Integration with matches + pre-99 seeding]
-  D --> E[Features: rest, travel, adaptation (dual role)]
-  E --> F[Final dataset (crown jewel)]
-  F --> G[XGBoost modeling]
-  G --> H[Year-wise CV + OOF]
-  H --> I[Isotonic calibration + cost threshold]
-  I --> J[2023–2025 hold-out + reports]
+  A[Ranking_scrapping.py (headless)] --> B[raw HTML (.txt per date)]
+  B --> C[rankings_to_csv.py (BeautifulSoup)]
+  C --> D[SQL Staging (Tables/ Staging/)]
+  D --> E[Procedures&Functions (sf_*/sp_*)]
+  E --> F[Views (vw_atp_matches, vw_player_stats)]
+  F --> G[CreateData.R & DataTransform*.R]
+  G --> H[Final enriched dataset]
+  H --> I[MODEL/model1.ipynb — XGBoost]
+  I --> J[CV by year + OOF calibration + hold‑out]
 ```
 
-### 1) Scraping & Parsing (Playwright + BeautifulSoup)
+### 1) Scraping & Parsing
 
-* **`rankings_fetch.py`** downloads **official ATP HTML** in **headless mode** and stores it as `.txt` (`rankings_YYYY-mm-dd.txt`).
+* **`Transform/Ranking Scrapping/Ranking_scrapping.py`** downloads **official ATP HTML** in **headless mode** and stores full HTML as text (`rankings_YYYY-mm-dd.txt`).
+  *This design is deliberate:* saving raw HTML first makes the pipeline **finite and reproducible**; you can re‑parse locally without revisiting the site.
+* **`Transform/Ranking Scrapping/rankings_to_csv.py`** parses those files and extracts **`ranking`** and **`player_code`** per date (robust to absolute/relative URLs and locale prefixes like `/es/`, `/en/`).
 
-  > Efficient by design: separating *HTML download* from *data scraping* lets you **reprocess locally** without hitting the origin (and makes the pipeline **finite**).
-* **`rankings_parse.py`** extracts **ranking** and **player_code** per date (robust to locale and absolute/relative URLs).
+### 2) SQL Staging & Business Logic
 
-> **Date format note**: `fechas.txt` contains values extracted from page HTML such as
-> `<option value="2025-09-15">2025.09.15</option>`. The parser reads the `value="YYYY-mm-dd"` field.
+* **Tables** under `ETL/SQL/Tables/Staging/` define the staging schema: matches, enriched matches, players, tournaments, rulebook, surfaces, etc.
+* **Procedures & functions** under `ETL/SQL/Procedures&Functions/` (files beginning with `sf_` / `sp_`) implement:
 
-### 2) ETL & Feature Engineering (R: `data.table` + `dplyr`)
+  * Delta and hash logic for incremental loads (`*_delta_hash.sql`).
+  * Player points rules application and enrichment (`sp_apply_points_rules.sql`, `sp_calculate_player_points.sql`, `sp_enrich_atp_matches.sql`).
+  * Merge/processing orchestration for matches, players, tournaments.
+* **Views** in `ETL/SQL/views/` expose analytics‑ready joins: `vw_atp_matches.sql`, `vw_player_stats.sql`.
 
-* Sorting by `tournament_start_dtm`, `tournament_id`, phase and `match_order`.
-* **Pre‑1999 seeding**: last seen date per player + last tournament, with round normalization **ER→R128** to align phases.
-* **Role‑symmetric features** (`player_*` / `opponent_*`):
+### 3) ETL / Feature Engineering (R)
 
-  * `*_days_since_prev_tournament`, `*_weeks_since_prev_tournament`
-  * Flags: `*_back_to_back_week`, `*_two_weeks_gap`, `*_long_rest`
-  * Changes: `*_country_changed`, `*_surface_changed`, `*_indoor_changed`, `*_continent_changed`
-  * Composites: `*_red_eye_risk`, `*_travel_fatigue`
-  * Prior load: `*_prev_tour_matches`, `*_prev_tour_max_round`
-* Stable **country → continent** mapping (offline dictionary).
+* **`ETL/Load/CreateData.R`** and the **`Transform/Ranking Scrapping/DataTransform*.R`** scripts stitch everything into a **match–player** panel.
+* Feature highlights (mirrored for `player_*` and `opponent_*`):
 
-### 3) Modeling (Python, `MODEL/model1.ipynb`)
+  * Rest and load: `*_days_since_prev_tournament`, `*_weeks_since_prev_tournament`, `*_prev_tour_matches`.
+  * Adaptation flags: `*_country_changed`, `*_continent_changed`, `*_surface_changed`, `*_indoor_changed`.
+  * Fatigue proxies: `*_back_to_back_week`, `*_two_weeks_gap`, `*_long_rest`, `*_red_eye_risk`, `*_travel_fatigue`.
 
-* **Preprocessing** via `ColumnTransformer`:
+### 4) Modeling (Python, Jupyter)
 
-  * **One‑Hot** for categoricals (*sparse*) + safe imputation.
-  * Numerics coerced to `float32`.
-* **XGBoost** (`tree_method=hist`) with **early stopping** and fixed seed.
-* **Year‑wise cross‑validation** (2000–2025) with `id` grouping.
-* **OOF 2000–2022** for **isotonic calibration** (`IsotonicRegression`).
-* **Hold‑out 2023–2025** in one batch transform + predict, with metrics by year and tournament type.
-* **Cost‑optimal threshold**: tune `cost_fp`/`cost_fn` to your use‑case.
+* **`MODEL/model1.ipynb`** implements:
+
+  * `ColumnTransformer` (sparse **One‑Hot** for categoricals, numeric coercion to `float32`).
+  * **XGBoost** (`tree_method=hist`) with early stopping.
+  * **CV by year (2000–2025)** with **`id` grouping**.
+  * **OOF 2000–2022** for **isotonic calibration**.
+  * **Hold‑out 2023–2025** with breakdowns by tournament type and a **cost‑optimal threshold** utility.
 
 ---
 
@@ -139,40 +199,77 @@ flowchart LR
 
 ---
 
-## 🚀 Quickstart
+# 🚀 Quickstart
 
 > Assumes **Python 3.10+**, **R 4.2+**, and isolated envs (conda/venv).
 
-1. **Clone** the repo
+---
+
+## 1) Clone
 
 ```bash
 git clone https://github.com/Aitor-Quint-04/ATP-Match-Outcome-Prediction.git
 cd ATP-Match-Outcome-Prediction
 ```
 
-2. **Install Python deps**
+## 2) Install Python deps (example)
 
 ```bash
-pip install -r requirements.txt
-python -m playwright install firefox
+python -m pip install -U pandas numpy scipy scikit-learn xgboost beautifulsoup4 lxml selenium
+# Optional: easy driver management
+python -m pip install -U webdriver-manager
 ```
 
-3. **Download HTML (headless) & parse rankings**
+## 3) Fetch rankings HTML & parse
 
 ```bash
-python Scrapping/rankings_fetch.py     # saves /html/rankings_YYYY-mm-dd.txt
-python Scrapping/rankings_parse.py     # writes per-date CSV into /rankings csv
+python "Transform/Ranking Scrapping/Ranking_scrapping.py"
+python "Transform/Ranking Scrapping/rankings_to_csv.py"
 ```
 
-4. **Run ETL/Features** (R)
+## 4) Create staging & run SQL logic
 
-* Open `ETL/rest_travel_proxies.R`, set input/output paths, and execute.
-* Output: **enriched table** with all `player_*` / `opponent_*` features.
+Load the scripts in this order:
 
-5. **Train & evaluate**
+1. `ETL/SQL/Tables/Staging/` (tables)
+2. `ETL/SQL/Procedures&Functions/` (procedures/functions)
+3. `ETL/SQL/views/` (views)
 
-* Open `MODEL/model1.ipynb` and run all cells.
-* You’ll get: **year‑wise CV**, **calibrated OOF** and **2023–2025 hold‑out**, plus breakdowns by tournament type.
+## 5) Run Python ETL extractors (in order)
+
+> Run from the repo root so relative imports/config resolve correctly.
+
+```bash
+# 1) Tournaments
+python "ETL/Extractor/TournamentsATPExtractor.py"
+
+# 2) Players
+python "ETL/Extractor/PlayersATPExtractor.py"
+
+# 3) Matches
+python "ETL/Extractor/MatchesATPExtractor.py"
+
+# 4) Stats
+python "ETL/Extractor/StatsATPExtractor.py"
+
+# 5) Match score updater
+python "ETL/Extractor/MatchesATPSCoreUpdater.py"
+```
+
+## 6) Assemble features (R)
+
+```r
+# In R
+source("ETL/Load/CreateData.R")
+# or run the DataTransform*.R scripts inside Transform/Ranking Scrapping/
+```
+
+## 7) Model
+
+Open **`MODEL/model1.ipynb`** and run all cells to reproduce: **CV by year**, **OOF calibration**, and **hold‑out 2023–2025**.
+
+> A tiny sample lives in `Data_Example/sample.csv` for quick sanity checks.
+
 
 ---
 
@@ -210,7 +307,7 @@ Ideas, PRs and issues are very welcome! If you propose new features, please **mo
 
 ## 📄 License
 
-Code under a standard open license (see `LICENSE`).
+Code under a permissive open license (see `LICENSE`).
 Please also review the terms that apply to any **source data** you use.
 
 ---
