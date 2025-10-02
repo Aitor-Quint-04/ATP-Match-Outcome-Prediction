@@ -78,20 +78,26 @@ ATP-Match-Outcome-Prediction/
 │     ├─ Procedures&Functions/        # Stored procs & UDFs (sf_* / sp_*)
 │     ├─ Tables/
 │     │  └─ Staging/
-│     │     ├─ atp_matches.sql
-│     │     ├─ atp_matches_enriched.sql
-│     │     ├─ atp_players.sql
-│     │     ├─ atp_tournaments.sql
-│     │     ├─ countries.sql
-│     │     ├─ indoor_outdoor.sql
-│     │     ├─ match_scores_adjustments.sql
-│     │     ├─ player_points.sql
-│     │     ├─ points_rulebook.sql
-│     │     ├─ points_rules.sql
-│     │     ├─ series.sql
-│     │     ├─ series_category.sql
-│     │     ├─ stadies.sql            # (kept as‑is)
-│     │     └─ surfaces.sql
+|     |  |     ├─ stg_match_scores.sql
+|     |  |     ├─ stg_match_stats.sql
+|     |  |     ├─ stg_matches.sql
+|     |  |     ├─ stg_players.sql
+|     |  |     ├─ stg_teams.sql
+|     |  |     └─ stg_tournaments.sql
+│     │  ├─ atp_matches.sql
+│     │  ├─ atp_matches_enriched.sql
+│     │  ├─ atp_players.sql
+│     │  ├─ atp_tournaments.sql
+│     │  ├─ countries.sql
+│     │  ├─ indoor_outdoor.sql
+│     │  ├─ match_scores_adjustments.sql
+│     │  ├─ player_points.sql
+│     │  ├─ points_rulebook.sql
+│     │  ├─ points_rules.sql
+│     │  ├─ series.sql
+│     │  ├─ series_category.sql
+│     │  ├─ stadies.sql            # (kept as‑is)
+│     │  └─ surfaces.sql
 │     └─ views/
 │        ├─ vw_atp_matches.sql
 │        └─ vw_player_stats.sql
@@ -330,6 +336,8 @@ All transformation scripts live in **`Transform/Ranking Scrapping/`** and are de
 15. **`DataTransformFINAL.R`** 
 
     * Write the long‑horizon enriched dataset (e.g., `database_99-25_1.csv`).
+    * Bayesian Smooth
+    * Correlation analysis
 
 > Notes
 >
