@@ -1,14 +1,22 @@
-# ================================================================
+## ================================================================
 # Player-centric dataset builder for ATP matches (1999–2025)
+# NOTE: We also create a separate file with raw per-match gameplay statistics
+# (e.g., aces, serve/return splits, points won, etc.) and keep it out of the
+# main modeling dataset because the very large number of features is not
+# immediately relevant to prediction. This companion file is preserved for
+# later use to compute historical/rolling statistics and richer aggregates.
 # - Reads all_matches_99-25.csv (match-level, two players per row)
 # - Produces a player-centric table with one row per player per match
-# - Optionally splits out per-match stats columns into a separate object
+# - Writes a dedicated match-stats artifact (e.g., match_stats_99-25.csv)
+#   that contains the per-match gameplay metrics
 # - Enriches with historical counts (<1999) if a Sackmann CSV is present
 # - Filters to players with > THRESHOLD_MIN_MATCHES total matches
 # - Writes:
 #     - pred_jugadores_99-25.csv (player-centric, filtered)
 #     - data_jugadores_99-25.csv (player-centric, filtered, full columns)
+#     - match_stats_99-25.csv (raw per-match gameplay stats for later FE)
 # ================================================================
+
 
 suppressPackageStartupMessages({
   library(dplyr)
