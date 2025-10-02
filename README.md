@@ -63,7 +63,6 @@ ATP-Match-Outcome-Prediction/
 ├─ ETL/
 │  ├─ Extractor/
 │  │  ├─ MatchesATPExtractor.py
-│  │  ├─ MatchesATPSCoreUpdater.py
 │  │  ├─ MatchesBaseExtractor.py
 │  │  ├─ PlayersATPExtractor.py
 │  │  ├─ StatsATPExtractor.py
@@ -146,9 +145,8 @@ ATP-Match-Outcome-Prediction/
   X1 --> X2[ETL/Extractor/PlayersATPExtractor.py]
   X2 --> X3[ETL/Extractor/MatchesATPExtractor.py]
   X3 --> X4[ETL/Extractor/StatsATPExtractor.py]
-  X4 --> X5[ETL/Extractor/MatchesATPSCoreUpdater.py]
 
-  X5 --> G[CreateData.R & DataTransform*.R]
+  X4 --> G[CreateData.R & DataTransform*.R]
   G --> H[Final enriched dataset]
   H --> I[MODEL/model1.ipynb — XGBoost]
   I --> J[CV by year + OOF calibration + hold‑out]
@@ -164,7 +162,6 @@ Located in `ETL/Extractor/`, these modules perform the **primary data extraction
 * `ETL/Extractor/PlayersATPExtractor.py` — extracts player pages (bio/handedness/backhand, country, etc.).
 * `ETL/Extractor/TournamentsATPExtractor.py` — pulls tournament metadata (location, surface, category, indoor/outdoor).
 * `ETL/Extractor/StatsATPExtractor.py` — scrapes stats blocks where available and aligns them to match IDs/players.
-* `ETL/Extractor/MatchesATPSCoreUpdater.py` (score updater) — revisits in‑progress or newly finished matches to update scores/results consistently.
 
 > **Notes:** Extractors follow a "fetch → parse (BeautifulSoup) → normalize" pattern. Raw HTML/JSON can be cached locally to make runs reproducible and to minimize load on the origin.
 
@@ -279,8 +276,6 @@ python "ETL/Extractor/MatchesATPExtractor.py"
 # 4) Stats
 python "ETL/Extractor/StatsATPExtractor.py"
 
-# 5) Match score updater
-python "ETL/Extractor/MatchesATPSCoreUpdater.py"
 ```
 
 ## 6) Assemble features (R)
