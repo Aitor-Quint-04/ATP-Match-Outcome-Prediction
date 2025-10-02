@@ -38,7 +38,7 @@ library(dplyr)
 # ----------------------------------------------------------------------------------------
 # Load
 # ----------------------------------------------------------------------------------------
-setwd("/home/aitor/Descargas/Project/Data/Msolonskyi")
+setwd("")
 t_players <- fread("pred_jugadores_99-25.csv")
 t_data    <- fread("data_jugadores_99-25.csv")
 
