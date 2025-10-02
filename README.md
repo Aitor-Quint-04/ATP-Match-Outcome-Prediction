@@ -114,7 +114,7 @@ ATP-Match-Outcome-Prediction/
 │  │  ├─ DataTransform11.R
 │  │  ├─ DataTransform12.R
 │  │  ├─ readme.txt
-│  │  └─ transform_info.txt
+│  └─ transform_info.txt
 │  │
 │  └─ (other feature scripts live here)
 │
@@ -296,12 +296,93 @@ source("ETL/Load/CreateData.R")
 # or run the DataTransform*.R scripts inside Transform/Ranking Scrapping/
 ```
 
+### 6‑bis) Full R transformation pipeline (step‑by‑step)
+
+All transformation scripts live in **`Transform/Ranking Scrapping/`** and are designed to run **sequentially**. They progressively build the final **match–player panel** (two rows per match) with mirrored `player_*` / `opponent_*` context.
+
+> Required packages (typical): `data.table`, `dplyr`, `readr`, `stringr`, `lubridate`, `tidyr`, `purrr`. Install as needed.
+
+**Script responsibilities (by file):**
+
+**(read the codes doc)**
+
+1. **`DataTransform1.R`** – Base normalization
+
+   * Coerce types, standardize column names, parse `tournament_start_dtm`, rounds and match order.
+   * Normalize keys and fix minor inconsistencies.
+  
+     **...**
+
+2. **`DataTransform2.R`** – Geography & context
+
+   * Country → continent mapping; indoor/outdoor normalization.
+   * Surface harmonization (clay/hard/grass); stadium metadata if required.
+
+     **...**
+
+3. **`DataTransform5.R`** – Rankings join
+
+   * Merge per‑date rankings (from scraping) into matches by player and date.
+   * Create ranking trend features (e.g., 4w/12w deltas if available).
+  
+     **...**
+
+14. **`DataTransform12.R`** 
+
+    * Write the long‑horizon enriched dataset (e.g., `database_99-25_1.csv`).
+
+> Notes
+>
+> * `ETL/Load/CreateData.R` can orchestrate or prepare inputs.
+> * Intermediate artifacts (if any) are written under your configured output directory.
+
+### One‑shot runner for all R transforms
+
+Use this snippet to execute the transforms **in the right order** (explicitly lists `5_1` and `6_1` to avoid alphanumeric sorting issues):
+
+```r
+# ---- packages (install if needed) ----
+req <- c("data.table","dplyr","readr","stringr","lubridate","tidyr","purrr")
+new <- setdiff(req, rownames(installed.packages()))
+if (length(new)) install.packages(new)
+invisible(lapply(req, library, character.only = TRUE))
+
+# ---- paths ----
+ROOT <- getwd()  # run from repo root
+SCRIPTS <- file.path
+
+order <- c(
+  "Transform/Ranking Scrapping/DataTransform1.R",
+  "Transform/Ranking Scrapping/DataTransform2.R",
+  "Transform/Ranking Scrapping/DataTransform3.R",
+  "Transform/Ranking Scrapping/DataTransform4.R",
+  "Transform/Ranking Scrapping/DataTransform5.R",
+  "Transform/Ranking Scrapping/DataTransform5_1.R",
+  "Transform/Ranking Scrapping/DataTransform6.R",
+  "Transform/Ranking Scrapping/DataTransform6_1.R",
+  "Transform/Ranking Scrapping/DataTransform7.R",
+  "Transform/Ranking Scrapping/DataTransform8.R",
+  "Transform/Ranking Scrapping/DataTransform9.R",
+  "Transform/Ranking Scrapping/DataTransform10.R",
+  "Transform/Ranking Scrapping/DataTransform11.R",
+  "Transform/Ranking Scrapping/DataTransform12.R"
+)
+
+for (s in order) {
+  cat(sprintf("\n>>> Running: %s\n", s))
+  source(s, echo = TRUE, max.deparse.length = Inf)
+}
+
+cat("\nAll transforms finished. Check the exported dataset (e.g., database_99-25_1.csv).\n")
+```
+
+---
+
 ## 7) Model
 
 Open **`MODEL/model1.ipynb`** and run all cells to reproduce: **CV by year**, **OOF calibration**, and **hold‑out 2023–2025**.
 
 > A tiny sample lives in `Data_Example/sample.csv` for quick sanity checks.
-
 
 ---
 
