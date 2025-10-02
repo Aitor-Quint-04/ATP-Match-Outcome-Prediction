@@ -313,7 +313,7 @@ All transformation scripts live in **`Transform/Ranking Scrapping/`** and are de
   
      **...**
 
-2. **`DataTransform2.R`** – Geography & context
+2. **`DataTransform3.R`** – Geography & context
 
    * Country → continent mapping; indoor/outdoor normalization.
    * Surface harmonization (clay/hard/grass); stadium metadata if required.
@@ -327,7 +327,7 @@ All transformation scripts live in **`Transform/Ranking Scrapping/`** and are de
   
      **...**
 
-14. **`DataTransform12.R`** 
+15. **`DataTransformFINAL.R`** 
 
     * Write the long‑horizon enriched dataset (e.g., `database_99-25_1.csv`).
 
@@ -342,7 +342,7 @@ Use this snippet to execute the transforms **in the right order** (explicitly li
 
 ```r
 # ---- packages (install if needed) ----
-req <- c("data.table","dplyr","readr","stringr","lubridate","tidyr","purrr")
+req <- c("data.table","dplyr","readr","stringr","lubridate","tidyr","purrr","zoo","progress","roll")
 new <- setdiff(req, rownames(installed.packages()))
 if (length(new)) install.packages(new)
 invisible(lapply(req, library, character.only = TRUE))
