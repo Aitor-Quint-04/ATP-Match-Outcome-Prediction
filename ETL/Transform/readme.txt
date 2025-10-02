@@ -1,5 +1,5 @@
 Due to compute and budget constraints, I limited the Python extractor to matches played between 1999 and 2025. 
-To preserve historical context, I perform a **pre-seeding** of metrics using datasets from 1968–1998 
+To preserve historical context, I perform a pre-seeding of metrics using datasets from 1968–1998 
 sourced from Jeff Sackmann, integrating them after normalization (types, keys, surfaces, categories, player/tournament 
 codes) and quality checks. This is a pragmatic solution that enables historical features without re-scraping the entire 
 past. That said, if you have the resources and time, I strongly recommend running the Python extractor across the full 
