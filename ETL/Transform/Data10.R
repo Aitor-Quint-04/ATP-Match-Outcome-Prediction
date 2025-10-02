@@ -35,7 +35,7 @@
 library(data.table)
 library(dplyr)
 
-setwd("/home/aitor/Descargas/Project/Data/Msolonskyi")
+setwd("")
 
 # ------------------------------------------------------------------
 # Load
