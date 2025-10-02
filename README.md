@@ -74,7 +74,7 @@ ATP-Match-Outcome-Prediction/
 
 ## 🧪 Pipeline at a glance
 
-```mermaid
+```
 flowchart LR
   A[ATP Rankings HTML] --> B[Parsing (BeautifulSoup)]
   B --> C[Per-date rankings CSV]
