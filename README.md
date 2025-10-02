@@ -134,7 +134,7 @@ ATP-Match-Outcome-Prediction/
 
 ## 🧪 Pipeline at a glance
 
-```mermaid
+```
 flowchart LR
   A[Ranking_scrapping.py (headless)] --> B[raw HTML (.txt per date)]
   B --> C[rankings_to_csv.py (BeautifulSoup)]
