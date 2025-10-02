@@ -135,13 +135,20 @@ ATP-Match-Outcome-Prediction/
 ## 🧪 Pipeline at a glance
 
 ```
-flowchart LR
   A[Ranking_scrapping.py (headless)] --> B[raw HTML (.txt per date)]
   B --> C[rankings_to_csv.py (BeautifulSoup)]
   C --> D[SQL Staging (Tables/ Staging/)]
-  D --> E[Procedures&Functions (sf_*/sp_*)]
+  D --> E[Procedures & Functions (sf_*/sp_*)]
   E --> F[Views (vw_atp_matches, vw_player_stats)]
-  F --> G[CreateData.R & DataTransform*.R]
+
+  %% Python ETL extractors run AFTER SQL creation
+  F --> X1[ETL/Extractor/TournamentsATPExtractor.py]
+  X1 --> X2[ETL/Extractor/PlayersATPExtractor.py]
+  X2 --> X3[ETL/Extractor/MatchesATPExtractor.py]
+  X3 --> X4[ETL/Extractor/StatsATPExtractor.py]
+  X4 --> X5[ETL/Extractor/MatchesATPSCoreUpdater.py]
+
+  X5 --> G[CreateData.R & DataTransform*.R]
   G --> H[Final enriched dataset]
   H --> I[MODEL/model1.ipynb — XGBoost]
   I --> J[CV by year + OOF calibration + hold‑out]
