@@ -264,6 +264,10 @@ Load the scripts in this order:
 > Run from the repo root so relative imports/config resolve correctly.
 
 ```bash
+python "ETL/Extractor/base_extractor.py"
+python "ETL/Extractor/constants.py"
+python "ETL/Extractor/MatchesBaseExtractor.py"
+
 # 1) Tournaments
 python "ETL/Extractor/TournamentsATPExtractor.py"
 
