@@ -311,7 +311,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 * `match_result`: **0/1** label (1 = player win, 0 = loss). Walkovers/retirements follow match records; Elo updates handle RET/W.O. with adjusted K.
 
---
+---
 
 ## 🏆 Results (executive summary)
 
