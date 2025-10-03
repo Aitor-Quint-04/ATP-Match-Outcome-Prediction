@@ -39,7 +39,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 ---
 
-## Dataset description
+## 📊​ Dataset description
 
 **Conventions (applies to many fields):**
 
