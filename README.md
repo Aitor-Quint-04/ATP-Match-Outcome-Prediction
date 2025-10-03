@@ -41,6 +41,9 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 ## 📊​ Dataset description
 
+This dataset is the result of applying the **Extract - Load - Transform** modules.
+A **highly complete** dataset with **207 final variables**, including a drop of more than 30 features.
+
 **Conventions (applies to many fields):**
 
 * **Unit of analysis:** one row = *(match, player)* (two rows per match `id`).
@@ -501,21 +504,6 @@ Located in `ETL/Extractor/`, these modules perform the **primary data extraction
   * **CV by year (2000–2025)** with **`id` grouping** (both rows of a match stay together).
   * **OOF 2000–2022** for **isotonic calibration**.
   * **Hold‑out 2023–2025** with breakdowns by tournament type and a **cost‑optimal threshold** utility.
-
----
-
-## 💎 The dataset (the crown jewel)
-
-* **Coverage**: 1999–2025 (with pre‑1999 seeds where applicable).
-* **Unit**: **match–player** rows (two rows per match), with mirrored `player_*` / `opponent_*` context for match‑up modeling.
-* **Key examples**:
-
-  * `player_days_since_prev_tournament`, `opponent_days_since_prev_tournament`
-  * `player_red_eye_risk`, `opponent_red_eye_risk`
-  * `player_travel_fatigue`, `opponent_travel_fatigue`
-  * `player_prev_tour_matches`, `player_prev_tour_max_round` (and mirrored opponent features)
-  * Context: `surface`, `indoor_outdoor`, `best_of`, `tournament_country`, `tournament_category`, ranking trends, home flags, etc.
-* **Ready for ML/BI**: clean column types, temporal safety, long‑term consistency.
 
 ---
 
