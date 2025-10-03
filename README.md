@@ -52,7 +52,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 * **Log-ratios:** `log(player_avg+1e-6) − log(opponent_avg+1e-6)`.
 * **KPIs with min history (N≥5)** before exposing averages: double faults, aces/match, service games won %, break-points saved/converted %, return games won %, total points won %, tie-breaks won %.
 
---
+---
 
 ### Identifiers & match/tournament metadata (14)
 
