@@ -11,7 +11,7 @@ This repository brings together the **entire workflow** to predict ATP match out
 
 You get two deliverables:
 
-1. **A rich, long‑horizon dataset** (the *jewel*): 1999–2025 coverage, with **real competitive context** features (rest, travel, adaptation to surface & indoor, prior load) for **both players**.
+1. **A rich, long‑horizon dataset** (the *jewel*): All ATP History coverage (depends on your environment), with **real competitive context** features (rest, travel, adaptation to surface & indoor, prior load) for **both players**.
 2. **A calibrated XGBoost model** that outputs realistic win probabilities and strong out‑of‑sample metrics.
 
 If you work in **sports analytics**, **quantitative sports trading**, **scouting**, or **ML R&D for sports**, this repo offers **production‑grade building blocks** backed by **high‑quality data**.
@@ -29,6 +29,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
   * **Red‑eye risk** (intercontinental + consecutive week).
   * **Travel fatigue score** (composite).
 * **Cold‑start pre‑1999** with historical seed (Jeff Sackmann): last seen date & tournament prior to 1999, and round normalization (**ER→R128**) for phase alignment.
+* **NOTE:** We used pre-seeding with data from Jeff Sackman due to budget and hardware limitations. This is completely optional, and I strongly recommend that anyone who can extract all the data from the ATP website across all years do so and skip the pre-seeding.
 * **Validation that mirrors reality**:
 
   * **Year‑wise cross‑validation (2000–2025)** with an **`id` guarantee** (both rows of a match stay together).
@@ -37,6 +38,280 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 * **Calibrated probabilities** + **cost‑optimal thresholding** for decision‑ready outputs.
 
 ---
+
+## Dataset description
+
+**Conventions (applies to many fields):**
+
+* **Unit of analysis:** one row = *(match, player)* (two rows per match `id`).
+* **Anti-leakage:** all rolling/progressive stats are computed in strict time order and **exclude the current match**.
+* **Dates:** rankings are taken **as of the day before** `tournament_start_dtm`.
+* **Codes & units:** countries/citizenships in **ISO-3**; height **cm**, weight **kg**; surfaces = **Clay/Grass/Hard/Carpet**; indoor/outdoor = **“Indoor/Outdoor”**.
+* **Grand Slams:** GS = the four majors only (no doubles).
+* **Elo:** logistic win prob; `elo_diff` uses **general** Elo (player − opponent).
+* **Log-ratios:** `log(player_avg+1e-6) − log(opponent_avg+1e-6)`.
+* **KPIs with min history (N≥5)** before exposing averages: double faults, aces/match, service games won %, break-points saved/converted %, return games won %, total points won %, tie-breaks won %.
+
+--
+
+### Identifiers & match/tournament metadata (14)
+
+* `surface`: court surface (Clay/Grass/Hard/Carpet).
+* `stadie_id`: round code (Q1, Q2, Q3, BR, RR, R128, R64, R32, R16, QF, SF, F, 3P).
+* `best_of`: best-of sets (GS=5; non-GS inferred from scores; fallback 3).
+* `tournament_id`: tournament unique identifier.
+* `id`: match identifier (shared by the two player rows).
+* `year`: calendar year of the tournament.
+* `match_order`: order **within the current round** (resets per `stadie_id`).
+* `tournament_start_dtm`: tournament start date (YYYY-MM-DD).
+* `tournament_category`: one of {atp250, atp500, 1000, gs, teamCup, gsCup, atpFinal, og, ch100, ch50, chFinal, laverCup, nextGen, atpCup}.
+* `tournament_prize`: prize money as scraped (usually EUR/GBP; **not inflation-adjusted**).
+* `tournament_country`: host country (ISO-3).
+* `tournament_name`: tournament name string.
+* `indoor_outdoor`: “Indoor” or “Outdoor”.
+* `stadie_ord`: ordinal index of `stadie_id` (ordered factor).
+
+### Identity & basic player info (26)
+
+* `player_code`: player ID (focal row).
+* `player_name`: player display name.
+* `player_citizenship`: player country (ISO-3).
+* `player_age`: player age at event.
+* `player_seed`: tournament seed (0/NA = unseeded).
+* `player_handedness`: Left/Right-handed.
+* `player_backhand`: one-/two-handed backhand (or Unknown).
+* `player_height`: player height (cm).
+* `player_weight`: player weight (kg).
+* `player_years_experience`: `year − turned_pro` (first Challenger/ATP appearance).
+* `player_matches_won`: **career** wins up to this match (progressive).
+* `player_win_rate`: **career** win rate up to this match (progressive).
+* `player_gs_titles`: Grand Slam titles (singles only).
+* `opponent_code`: opponent ID.
+* `opponent_name`: opponent display name.
+* `opponent_citizenship`: opponent country (ISO-3).
+* `opponent_age`: opponent age at event.
+* `opponent_seed`: opponent seed (0/NA = unseeded).
+* `opponent_handedness`: Left/Right-handed.
+* `opponent_backhand`: one-/two-handed (or Unknown).
+* `opponent_height`: opponent height (cm).
+* `opponent_weight`: opponent weight (kg).
+* `opponent_years_experience`: `year − turned_pro` for opponent.
+* `opponent_matches_won`: opponent **career** wins to date.
+* `opponent_win_rate`: opponent **career** win rate to date.
+* `opponent_gs_titles`: opponent GS titles.
+
+### Home flags (2)
+
+* `player_home`: 1 if `player_citizenship == tournament_country`, else 0.
+* `opponent_home`: 1 if `opponent_citizenship == tournament_country`, else 0.
+
+### Ranking & trajectory (18)
+
+* `player_atp_ranking`: singles rank at **t−1 day** (rolling join ≤ start date).
+* `opponent_atp_ranking`: opponent rank at **t−1 day**.
+* `player_highest_atp_ranking`: historical best rank up to t.
+* `opponent_highest_atp_ranking`: opponent best rank up to t.
+* `player_rank_trend_4w_cat`: 4-week rank trend category {subida, estable, bajada} with **adaptive** threshold (~2% of max(rank_t, rank_t−4w), floor 1).
+* `player_rank_trend_12w_cat`: 12-week category (threshold ~5%).
+* `opponent_rank_trend_4w_cat`: as above for opponent (4w).
+* `opponent_rank_trend_12w_cat`: as above for opponent (12w).
+* `player_rank_trend_4w`: `rank(t−4w) − rank(t)` (positive = improving).
+* `player_rank_trend_12w`: `rank(t−12w) − rank(t)`.
+* `opponent_rank_trend_4w`: opponent 4-week trend.
+* `opponent_rank_trend_12w`: opponent 12-week trend.
+* `rank_diff_t`: `opponent_rank − player_rank` at t (positive = opponent worse).
+* `trend_diff_4w`: opponent 4w trend − player 4w trend.
+* `trend_diff_12w`: opponent 12w trend − player 12w trend.
+* `log_rank_ratio_t`: `log(opponent_rank / player_rank)`.
+* `log_player_dist_to_peak`: `log(rank_t) − log(best_rank_so_far)`.
+* `log_opponent_dist_to_peak`: same for opponent.
+
+### Surface specialization (7)
+
+* `player_surface_specialization`: `player_elo_surface_pre − player_elo_pre` (surface vs general).
+* `opponent_surface_specialization`: opponent analogue.
+* `surface_specialization_diff`: player − opponent specialization.
+* `player_favourite_surface`: 1 if match surface = player’s long-run argmax surface.
+* `opponent_favourite_surface`: opponent analogue.
+* `player_win_rate_surface_progressive`: player **pre-match** surface win rate (seeded by pre-1999).
+* `opponent_win_rate_surface_progressive`: opponent analogue.
+
+### Elo & probabilities (7)
+
+* `elo_diff`: **general** Elo difference *(player − opponent)* pre-match.
+* `player_elo_surface_pre`: player **surface** Elo pre-match.
+* `opponent_elo_surface_pre`: opponent surface Elo pre-match.
+* `player_win_prob_surface`: Elo-implied win prob on surface (pre-match).
+* `player_win_prob_diff_general_vs_surface_cat`: {negative, neutral, positive} from `player_win_prob − player_win_prob_surface` with cuts (−∞, −0.2], (−0.2, 0.2], (0.2, ∞).
+* `opponent_win_prob_diff_general_vs_surface_cat`: opponent analogue.
+* `h2h_surface_vs_general_diff`: `player_h2h_surface_win_ratio − player_h2h_full_win_ratio` (smoothed).
+
+### Recent form, consistency & in-tournament load (21)
+
+* `player_win_ratio_last_5_matches`: rolling win rate last 5 (lagged).
+* `player_win_ratio_last_10_matches`: rolling win rate last 10 (lagged).
+* `opponent_win_ratio_last_5_matches`: opponent last 5 (lagged).
+* `opponent_win_ratio_last_10_matches`: opponent last 10 (lagged).
+* `momentum_diff_5`: player5 − opponent5.
+* `momentum_diff_10`: player10 − opponent10.
+* `player_trend`: player5 − player10 (positive = improving).
+* `opponent_trend`: opponent5 − opponent10.
+* `player_good_form_5`: 1 if player5 > 0.7 else 0.
+* `player_good_form_10`: 1 if player10 > 0.7 else 0.
+* `opponent_good_form_5`: 1 if opponent5 > 0.7 else 0.
+* `opponent_good_form_10`: 1 if opponent10 > 0.7 else 0.
+* `player_consistency`: |player5 − player10|.
+* `opponent_consistency`: |opp5 − opp10|.
+* `player_won_previous_tournament`: 1 if last tournament entered was won.
+* `opponent_won_previous_tournament`: opponent analogue.
+* `cumulative_sets`: **sets played including this match** within current tournament.
+* `player_sets_played_tournament`: player sets played **before** this match in current tournament.
+* `opponent_sets_played_tournament`: opponent analogue.
+* `player_prev_matches`: player’s total prior matches up to t (exposure).
+* `opponent_prev_matches`: opponent’s exposure count.
+
+### Rest, schedule & travel (26)
+
+* `player_days_since_prev_tournament`: days since player’s previous tournament (seeded with pre-1999 “last seen” if applicable).
+* `player_weeks_since_prev_tournament`: weeks since previous tournament.
+* `player_back_to_back_week`: ≤9 days gap flag.
+* `player_two_weeks_gap`: 10–16 days gap flag.
+* `player_long_rest`: ≥21 days gap flag.
+* `player_country_changed`: country changed vs previous tournament.
+* `player_surface_changed`: surface changed vs previous.
+* `player_indoor_changed`: indoor/outdoor changed vs previous.
+* `player_continent_changed`: continent changed vs previous.
+* `player_red_eye_risk`: inter-continent **and** back-to-back.
+* `player_travel_fatigue`: composite score (2×continent + 1×country + 1×surface + 0.5×indoor).
+* `player_prev_tour_matches`: matches played in the **previous** tournament.
+* `player_prev_tour_max_round`: furthest round reached in the **previous** tournament (aligned ladder).
+* `opponent_days_since_prev_tournament`: opponent analogue.
+* `opponent_weeks_since_prev_tournament`: opponent analogue.
+* `opponent_back_to_back_week`: opponent analogue.
+* `opponent_two_weeks_gap`: opponent analogue.
+* `opponent_long_rest`: opponent analogue.
+* `opponent_country_changed`: opponent analogue.
+* `opponent_surface_changed`: opponent analogue.
+* `opponent_indoor_changed`: opponent analogue.
+* `opponent_continent_changed`: opponent analogue.
+* `opponent_red_eye_risk`: opponent analogue.
+* `opponent_travel_fatigue`: opponent analogue.
+* `opponent_prev_tour_matches`: opponent analogue.
+* `opponent_prev_tour_max_round`: opponent analogue.
+
+### Head-to-Head (8)
+
+* `player_h2h_full_win_ratio`: smoothed H2H win ratio (all counted events) up to t.
+* `player_h2h_total_matches`: H2H sample size (all surfaces).
+* `player_h2h_surface_win_ratio`: smoothed H2H win ratio on current surface.
+* `player_h2h_surface_total_matches`: H2H sample size on current surface.
+* `has_player_h2h_surface`: 1 if surface H2H available (>0 matches), else 0.
+* `has_player_h2h_full`: 1 if any H2H available (>0 matches), else 0.
+* `player_h2h_full_cred`: credibility 0..1 based on sample size vs prior.
+* `player_h2h_surface_cred`: surface credibility 0..1.
+
+### Play statistics (progressive averages) (18)
+
+* `player_serve_1st_in_pct_avg`: % first serves in (lagged avg).
+* `opponent_serve_1st_in_pct_avg`: opponent analogue.
+* `player_serve_2nd_won_pct_avg`: % points won on **2nd serve** (lagged avg).
+* `opponent_serve_2nd_won_pct_avg`: opponent analogue.
+* `player_double_faults_pct_avg`: double faults / first-serve attempts (lagged avg, N≥5).
+* `opponent_double_faults_pct_avg`: opponent analogue (N≥5).
+* `player_aces_per_match_avg`: aces per match (lagged avg, N≥5).
+* `opponent_aces_per_match_avg`: opponent analogue (N≥5).
+* `player_service_games_won_pct_avg`: service games won % (lagged avg, N≥5).
+* `opponent_service_games_won_pct_avg`: opponent analogue (N≥5).
+* `player_break_points_saved_pct_avg`: % BP saved on serve (lagged avg, N≥5).
+* `opponent_break_points_saved_pct_avg`: opponent analogue (N≥5).
+* `player_return_games_won_pct_avg`: return games won % (lagged avg, N≥5).
+* `opponent_return_games_won_pct_avg`: opponent analogue (N≥5).
+* `player_break_points_converted_pct_avg`: % BP converted on return (lagged avg, N≥5).
+* `opponent_break_points_converted_pct_avg`: opponent analogue (N≥5).
+* `player_total_points_won_pct_avg`: total points won % (lagged avg, N≥5).
+* `opponent_total_points_won_pct_avg`: opponent analogue (N≥5).
+
+### Efficiencies & differentials (6)
+
+* `player_serve_1st_efficiency`: `player_serve_1st_won_pct_avg / player_service_games_won_pct_avg`.
+* `opponent_serve_1st_efficiency`: opponent analogue.
+* `player_return_1st_efficiency`: `player_return_1st_won_pct_avg / player_return_games_won_pct_avg`.
+* `opponent_return_1st_efficiency`: opponent analogue.
+* `player_return_1st_vs_2nd_diff`: `return_1st_won_pct_avg − return_2nd_won_pct_avg`.
+* `opponent_return_1st_vs_2nd_diff`: opponent analogue.
+
+### Clutch & tie-break metrics (6)
+
+* `player_clutch_bp_save_gap`: BP saved % − service games won % (serve pressure).
+* `opponent_clutch_bp_save_gap`: opponent analogue.
+* `player_clutch_bp_conv_gap`: BP converted % − return games won % (return pressure).
+* `opponent_clutch_bp_conv_gap`: opponent analogue.
+* `player_clutch_tiebreak_adj`: tie-breaks won % − total points won %.
+* `opponent_clutch_tiebreak_adj`: opponent analogue.
+
+### Log-ratios (player vs opponent) (11)
+
+* `log_ratio_serve_1st_in_pct`: log-ratio of first-serve-in % (player vs opp).
+* `log_ratio_serve_2nd_won_pct`: log-ratio of 2nd-serve points won %.
+* `log_ratio_double_faults_pct`: log-ratio of DF rate.
+* `log_ratio_aces_per_match`: log-ratio of aces per match.
+* `log_ratio_service_games_won_pct`: log-ratio of service games won %.
+* `log_ratio_break_points_saved_pct`: log-ratio of BP saved %.
+* `log_ratio_return_2nd_won_pct`: log-ratio of return vs 2nd-serve points won %.
+* `log_ratio_return_games_won_pct`: log-ratio of return games won %.
+* `log_ratio_break_points_converted_pct`: log-ratio of BP converted %.
+* `log_ratio_total_points_won_pct`: log-ratio of total points won %.
+* `log_ratio_tiebreaks_won_pct`: log-ratio of tie-breaks won %.
+
+### Titles & prestige (2)
+
+* `player_prestigious_non_gs_titles`: count of **non-GS** “prestigious” titles (as defined in the pipeline; typically Masters 1000/ATP Finals/Olympics).
+* `opponent_prestigious_non_gs_titles`: opponent analogue.
+
+### Missingness indicators ( `_was_na` flags ) (34)
+
+*(Binary flags: 1 if the named metric was **NA before smoothing/imputation**, else 0.)*
+
+* `log_ratio_tiebreaks_won_pct_was_na`: NA-flag for `log_ratio_tiebreaks_won_pct`.
+* `log_ratio_break_points_converted_pct_was_na`: NA-flag for `log_ratio_break_points_converted_pct`.
+* `log_ratio_break_points_saved_pct_was_na`: NA-flag for `log_ratio_break_points_saved_pct`.
+* `log_ratio_double_faults_pct_was_na`: NA-flag for `log_ratio_double_faults_pct`.
+* `log_ratio_service_games_won_pct_was_na`: NA-flag for `log_ratio_service_games_won_pct`.
+* `log_ratio_return_games_won_pct_was_na`: NA-flag for `log_ratio_return_games_won_pct`.
+* `log_ratio_total_points_won_pct_was_na`: NA-flag for `log_ratio_total_points_won_pct`.
+* `log_ratio_aces_per_match_was_na`: NA-flag for `log_ratio_aces_per_match`.
+* `player_clutch_tiebreak_adj_was_na`: NA-flag for `player_clutch_tiebreak_adj`.
+* `opponent_clutch_tiebreak_adj_was_na`: NA-flag for `opponent_clutch_tiebreak_adj`.
+* `player_break_points_converted_pct_avg_was_na`: NA-flag for `player_break_points_converted_pct_avg`.
+* `opponent_break_points_converted_pct_avg_was_na`: NA-flag for `opponent_break_points_converted_pct_avg`.
+* `player_clutch_bp_conv_gap_was_na`: NA-flag for `player_clutch_bp_conv_gap`.
+* `opponent_clutch_bp_conv_gap_was_na`: NA-flag for `opponent_clutch_bp_conv_gap`.
+* `player_break_points_saved_pct_avg_was_na`: NA-flag for `player_break_points_saved_pct_avg`.
+* `opponent_break_points_saved_pct_avg_was_na`: NA-flag for `opponent_break_points_saved_pct_avg`.
+* `player_clutch_bp_save_gap_was_na`: NA-flag for `player_clutch_bp_save_gap`.
+* `opponent_clutch_bp_save_gap_was_na`: NA-flag for `opponent_clutch_bp_save_gap`.
+* `player_double_faults_pct_avg_was_na`: NA-flag for `player_double_faults_pct_avg`.
+* `opponent_double_faults_pct_avg_was_na`: NA-flag for `opponent_double_faults_pct_avg`.
+* `player_aces_per_match_avg_was_na`: NA-flag for `player_aces_per_match_avg`.
+* `opponent_aces_per_match_avg_was_na`: NA-flag for `opponent_aces_per_match_avg`.
+* `player_service_games_won_pct_avg_was_na`: NA-flag for `player_service_games_won_pct_avg`.
+* `opponent_service_games_won_pct_avg_was_na`: NA-flag for `opponent_service_games_won_pct_avg`.
+* `player_return_games_won_pct_avg_was_na`: NA-flag for `player_return_games_won_pct_avg`.
+* `opponent_return_games_won_pct_avg_was_na`: NA-flag for `opponent_return_games_won_pct_avg`.
+* `player_total_points_won_pct_avg_was_na`: NA-flag for `player_total_points_won_pct_avg`.
+* `opponent_total_points_won_pct_avg_was_na`: NA-flag for `opponent_total_points_won_pct_avg`.
+* `player_serve_1st_efficiency_was_na`: NA-flag for `player_serve_1st_efficiency`.
+* `opponent_serve_1st_efficiency_was_na`: NA-flag for `opponent_serve_1st_efficiency`.
+* `player_return_1st_efficiency_was_na`: NA-flag for `player_return_1st_efficiency`.
+* `opponent_return_1st_efficiency_was_na`: NA-flag for `opponent_return_1st_efficiency`.
+* `log_ratio_serve_1st_in_pct_was_na`: NA-flag for `log_ratio_serve_1st_in_pct`.
+* `log_ratio_serve_2nd_won_pct_was_na`: NA-flag for `log_ratio_serve_2nd_won_pct`.
+
+### Target variable (1)
+
+* `match_result`: **0/1** label (1 = player win, 0 = loss). Walkovers/retirements follow match records; Elo updates handle RET/W.O. with adjusted K.
+
+--
 
 ## 🏆 Results (executive summary)
 
@@ -270,26 +545,23 @@ Load the scripts in this order:
 > Run from the repo root so relative imports/config resolve correctly.
 
 ```bash
-
-# 0) Run dependencies
-python "ETL/Extractor/base_extractor.py"
-python "ETL/Extractor/constants.py"
-python "ETL/Extractor/MatchesBaseExtractor.py"
-
+#Order to run:
 # 1) Tournaments
-python "ETL/Extractor/TournamentsATPExtractor.py"
-
 # 2) Players
-python "ETL/Extractor/PlayersATPExtractor.py"
-
 # 3) Matches
-python "ETL/Extractor/MatchesATPExtractor.py"
-
 # 4) Stats
-python "ETL/Extractor/StatsATPExtractor.py"
 
-# 5) Run the extractor (check the code)
-pyton "ETL/Extractor/runner.py"
+python "ETL/Extractor/runner.py" tournaments -- year {year}
+
+python "ETL/Extractor/runner.py.py" players --year {year}
+
+python "ETL/Extractor/runner.py" matches --year {year}
+
+python "ETL/Extractor/runner.py" stats --year {year}
+
+#run all together:
+
+python "ETL/Extractor/runner.py" all --year {year}
 
 ```
 
@@ -300,13 +572,10 @@ pyton "ETL/Extractor/runner.py"
 source("ETL/Load/CreateData.R")
 # or run the DataTransform*.R scripts inside Transform/Ranking Scrapping/
 ```
-
-### 6‑bis) Full R transformation pipeline (step‑by‑step)
-
 All transformation scripts live in **`Transform/Ranking Scrapping/`** and are designed to run **sequentially**. They progressively build the final **match–player panel** (two rows per match) with mirrored `player_*` / `opponent_*` context.
 
-> Required packages (typical): `data.table`, `dplyr`, `readr`, `stringr`, `lubridate`, `tidyr`, `purrr`. Install as needed.
-
+> Required packages (typical): `data.table`, `dplyr`, `readr`, `stringr`, `lubridate`, `tidyr`, `purrr`,`progress`,`roll`,`zoo`. Install as needed.
+`
 **Script responsibilities (by file):**
 
 **(read the codes doc)**
@@ -359,20 +628,21 @@ ROOT <- getwd()  # run from repo root
 SCRIPTS <- file.path
 
 order <- c(
-  "Transform/Ranking Scrapping/DataTransform1.R",
-  "Transform/Ranking Scrapping/DataTransform2.R",
-  "Transform/Ranking Scrapping/DataTransform3.R",
-  "Transform/Ranking Scrapping/DataTransform4.R",
-  "Transform/Ranking Scrapping/DataTransform5.R",
-  "Transform/Ranking Scrapping/DataTransform5_1.R",
-  "Transform/Ranking Scrapping/DataTransform6.R",
-  "Transform/Ranking Scrapping/DataTransform6_1.R",
-  "Transform/Ranking Scrapping/DataTransform7.R",
-  "Transform/Ranking Scrapping/DataTransform8.R",
-  "Transform/Ranking Scrapping/DataTransform9.R",
-  "Transform/Ranking Scrapping/DataTransform10.R",
-  "Transform/Ranking Scrapping/DataTransform11.R",
-  "Transform/Ranking Scrapping/DataTransform12.R"
+  "Transform/DataTransform1.R",
+  "Transform/DataTransform2.R",
+  "Transform/DataTransform3.R",
+  "Transform/DataTransform4.R",
+  "Transform/DataTransform5.R",
+  "Transform/DataTransform5_1.R",
+  "Transform/DataTransform6.R",
+  "Transform/DataTransform6_1.R",
+  "Transform/DataTransform7.R",
+  "Transform/DataTransform8.R",
+  "Transform/DataTransform9.R",
+  "Transform/DataTransform10.R",
+  "Transform/DataTransform11.R",
+  "Transform/DataTransform12.R"
+  "Transform/DataTransformFINAL.R"
 )
 
 for (s in order) {
