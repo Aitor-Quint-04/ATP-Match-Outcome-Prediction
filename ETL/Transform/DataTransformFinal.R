@@ -36,7 +36,7 @@ library(dplyr)        # simple arrange/mutate/group_by used in a few places
 # --------------------------------------------------------------------------------------------------
 # Load
 # --------------------------------------------------------------------------------------------------
-setwd("/home/aitor/Descargas/Project/Data/Msolonskyi")
+setwd("")
 t_players <- fread("pred_jugadores_99-25.csv")
 setDT(t_players)  # ensure data.table
 
