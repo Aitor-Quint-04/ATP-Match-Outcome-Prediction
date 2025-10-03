@@ -307,6 +307,21 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 * `log_ratio_serve_1st_in_pct_was_na`: NA-flag for `log_ratio_serve_1st_in_pct`.
 * `log_ratio_serve_2nd_won_pct_was_na`: NA-flag for `log_ratio_serve_2nd_won_pct`.
 
+## Dropped variables
+>The following features were dropped for redundancy reasons. It is up to the user to choose whether or not to keep them.
+
+* `player_turned_pro`* `opponent_turned_pro`* `player_prestigious_titles`
+* `opponent_prestigious_titles`* `player_total_matches`* `opponent_total_matches`
+* `opponent_win_prob`* `opponent_win_prob_surface`* `player_win_prob_log_ratio`
+* `opponent_win_prob_log_ratio`* `player_elo_pre`* `opponent_elo_pre`
+* `player_consistency_log_ratio`* `opponent_consistency_log_ratio`* `consistency_log_ratio_diff`
+* `player_surface_effect`* `opponent_surface_effect`* `player_serve_1st_won_pct_avg`
+* `opponent_serve_1st_won_pct_avg`* `player_return_1st_won_pct_avg`* `player_return_2nd_won_pct_avg`
+* `opponent_return_1st_won_pct_avg`* `opponent_return_2nd_won_pct_avg`* `player_win_prob`
+* `player_tiebreaks_won_pct_avg`* `opponent_tiebreaks_won_pct_avg`* `log_ratio_return_1st_won_pct`
+* `log_ratio_serve_1st_won_pct`
+
+
 ### Target variable (1)
 
 * `match_result`: **0/1** label (1 = player win, 0 = loss). Walkovers/retirements follow match records; Elo updates handle RET/W.O. with adjusted K.
