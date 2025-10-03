@@ -708,4 +708,4 @@ Please also review the terms that apply to any **source data** you use.
 ## 🎯 TL;DR
 
 This project combines **robust ETL**, **context‑rich competitive features**, and a **calibrated XGBoost** with metrics that **generalize**.
-The **dataset is the crown jewel**: deep, consistent and ready to power serious **sports analytics**—from research to production.
+The **dataset is the very important thing in this project**: deep, consistent and ready to power serious **sports analytics**—from research to production.
