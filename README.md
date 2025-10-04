@@ -391,10 +391,6 @@ Hold-out levels are strong (**AUC ≈ 0.89–0.96**, **Accuracy ≈ 0.79–0.88*
 ```
 ATP-Match-Outcome-Prediction/
 ├─.env/
-|  ├─.env.example
-|  ├─Makefile
-|  └─docker-compose.yml
-|
 |
 ├─ Data_Sample/
 │  ├─Data_Sample.csv       # Tiny sample for quick inspection
@@ -418,13 +414,7 @@ ATP-Match-Outcome-Prediction/
 │  └─ SQL/
 │     ├─ Procedures&Functions/        # Stored procs & UDFs (sf_* / sp_*)
 │     ├─ Tables/
-│     │  └─ Staging/
-|     |  |     ├─ stg_match_scores.sql
-|     |  |     ├─ stg_match_stats.sql
-|     |  |     ├─ stg_matches.sql
-|     |  |     ├─ stg_players.sql
-|     |  |     ├─ stg_teams.sql
-|     |  |     └─ stg_tournaments.sql
+│     │     └─ Staging/                   #Staging tables to depurate the extracted data
 │     │  ├─ atp_matches.sql
 │     │  ├─ atp_matches_enriched.sql
 │     │  ├─ atp_players.sql
@@ -467,10 +457,10 @@ ATP-Match-Outcome-Prediction/
 ├─ MODEL/
 │  └─ model1.ipynb                    # CV by year, OOF calibration, hold‑out 2023–2025
 │
-├─ figs/
-│     ├─ diff_accuracy_line.png
-│     ├─ diff_auc_line.png
-│     └─ diff_logloss_line.png
+├─ docs/                            
+|
+├─renv/ 
+|           
 ├─ LICENSE
 ├─ README.md
 └─ requirements.txt
