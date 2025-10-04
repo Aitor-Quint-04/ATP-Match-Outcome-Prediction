@@ -576,9 +576,7 @@ cd ATP-Match-Outcome-Prediction
 ## 2) Install Python deps 
 
 ```bash
-python -m pip install -U pandas numpy scipy scikit-learn xgboost beautifulsoup4 lxml selenium
-# Optional: easy driver management
-python -m pip install -U webdriver-manager
+python -m pip install -r requirements.txt
 ```
 
 ## 3) Fetch rankings HTML & parse
@@ -672,17 +670,51 @@ All transformation scripts live in **`Transform/`** and are designed to run **se
 Use this snippet to execute the transforms **in the right order** (explicitly lists `5_1` and `6_1` to avoid alphanumeric sorting issues):
 
 ```r
-# ---- packages (install if needed) ----
-req <- c("data.table","dplyr","readr","stringr","lubridate","tidyr","purrr","zoo","progress","roll")
-new <- setdiff(req, rownames(installed.packages()))
-if (length(new)) install.packages(new)
-invisible(lapply(req, library, character.only = TRUE))
+# run_transforms.R
+# Use renv for dependency management and execute Transform scripts in order.
+# This script:
+#  1) Boots a local renv project (or restores it if renv.lock exists).
+#  2) Ensures required R packages are installed into the project library.
+#  3) Sources all DataTransform*.R files in a fixed, explicit order.
 
-# ---- paths ----
-ROOT <- getwd()  # run from repo root
-file.path <- ""
-SCRIPTS <- file.path
+# --- Required packages for the transform stage ---
+req <- c(
+  "data.table","dplyr","readr","stringr","lubridate",
+  "tidyr","purrr","zoo","progress","roll"
+)
 
+# --- Bootstrap renv (expects to run from the repo root) ---
+if (!requireNamespace("renv", quietly = TRUE)) {
+  # Install renv globally if not present; only needed once per machine
+  install.packages("renv", repos = "https://cloud.r-project.org")
+}
+
+if (file.exists("renv.lock")) {
+  # Project already initialized: activate and restore to the lockfile state
+  renv::activate()
+  renv::restore(prompt = FALSE)
+
+  # In case new packages were added to `req` but not yet in the lockfile
+  missing_req <- setdiff(req, rownames(installed.packages()))
+  if (length(missing_req)) renv::install(missing_req)
+} else {
+  # First-time setup: initialize a minimal renv project and install req packages
+  renv::init(bare = TRUE)
+  renv::install(req)
+  renv::snapshot(prompt = FALSE)  # create renv.lock
+}
+
+# Load libraries quietly from the project library
+invisible(lapply(req, require, character.only = TRUE))
+
+# --- Paths / execution order ---
+# IMPORTANT: run this script from the repository root
+ROOT <- getwd()
+
+# Do NOT overwrite base::file.path; define a local variable for the directory
+SCRIPTS_DIR <- file.path(ROOT, "Transform")
+
+# Explicit order avoids lexicographic surprises (e.g., 5_1 vs 6_1)
 order <- c(
   "Transform/DataTransform1.R",
   "Transform/DataTransform2.R",
@@ -701,8 +733,16 @@ order <- c(
   "Transform/DataTransformFinal.R"
 )
 
+cat(">>> Running R transforms with renv project library\n")
+
+# Source each script in order; skip cleanly if a file is missing
 for (s in order) {
-  cat(sprintf("\n>>> Running: %s\n", s))
+  if (!file.exists(s)) {
+    cat(sprintf(" - SKIP (not found): %s\n", s))
+    next
+  }
+  cat(sprintf("\n>>> SOURCE: %s\n", s))
+  # echo=TRUE helps trace what each script is doing; increase max.deparse.length for visibility
   source(s, echo = TRUE, max.deparse.length = Inf)
 }
 
