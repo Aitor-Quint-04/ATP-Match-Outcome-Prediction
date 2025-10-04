@@ -343,8 +343,6 @@ A **highly complete** dataset with **207 final variables**, including a drop of 
 * **Hold‑out 2023–2025** (calibrated probabilities):
   **AUC ≈ 0.915 | LogLoss ≈ 0.379 | Brier ≈ 0.120 | Accuracy ≈ 0.821**
 
-**Bottom line:** the system **generalizes** and the **probabilities are calibrated**—a must for risk‑aware decisioning.
-
 <!-- Layout tipo "ladrillos al revés": dos arriba, una centrada debajo -->
 <table align="center" style="border-collapse:collapse;">
   <tr>
@@ -373,6 +371,18 @@ A **highly complete** dataset with **207 final variables**, including a drop of 
     </td>
   </tr>
 </table>
+
+---
+
+### Generalization summary
+
+Across the three Δ(Hold-out − CV) curves (Accuracy, AUC, LogLoss), the per-year gaps are **small and stable**—~−0.001 in 2023 and about **−0.02** for Accuracy/AUC with **+0.07–0.08** in LogLoss for 2024–25. 
+The lack of a growing trend suggests these difference curves would remain close to zero as more seasons arrive, so **the model generalizes**.  
+Hold-out levels are strong (**AUC ≈ 0.89–0.96**, **Accuracy ≈ 0.79–0.88**), and probability metrics are competitive (**Brier ≈ 0.12; LogLoss 0.24–0.45**), indicating reasonable calibration—excellent in 2023 and slightly softer in 2024–25.
+
+**Recommendations & ongoing work**
+- **Recommendation:** try shallower trees—reduce `max_depth` (e.g., **4–6**) and, if needed, raise `min_child_weight`/`gamma`—to trade a touch of fit for better out-of-time generalization.
+- **Ongoing work (in progress):** we are actively developing a **time-aware reweighting approach** (year-wise sample weights with temporal CV) and **rolling calibration** (isotonic fitted using data up to year *t−1*) to mitigate temporal shift. We’ll publish updates to the repository and README as these components are finalized.
 
 ---
 
