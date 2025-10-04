@@ -6,7 +6,7 @@
 
 ## ✨ What is this?
 
-This repository brings together the **entire workflow** to predict ATP match outcomes from 1999 to today:
+This repository brings together the **entire workflow** to predict ATP match outcomes:
 **scraping → parsing → SQL staging → ETL/feature engineering → year‑wise validation → calibration → hold‑out evaluation** and, most importantly, a **curated longitudinal dataset** that’s the project’s **crown jewel**.
 
 You get two deliverables:
@@ -556,7 +556,7 @@ Load the scripts in this order:
 
 python "ETL/Extractor/runner.py" tournaments -- year {year}
 
-python "ETL/Extractor/runner.py.py" players --year {year}
+python "ETL/Extractor/runner.py" players --year {year}
 
 python "ETL/Extractor/runner.py" matches --year {year}
 
