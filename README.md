@@ -398,7 +398,7 @@ ATP-Match-Outcome-Prediction/
 │        └─ vw_player_stats.sql
 │
 ├─ Transform/
-│  ├─ Ranking Scrapping/
+│  ├─ Ranking Scraping/
 │  │  ├─ Ranking_scrapping.py         # Headless HTML fetch from atptour.com
 │  │  ├─ rankings_to_csv.py           # BeautifulSoup → per‑date rankings CSV
 │  ├─ DataTransform1.R
@@ -435,7 +435,7 @@ ATP-Match-Outcome-Prediction/
 ## 🧪 Pipeline at a glance
 
 ```
-  A[Ranking_scrapping.py (headless)] --> B[raw HTML (.txt per date)]
+  A[Ranking_scraping.py (headless)] --> B[raw HTML (.txt per date)]
   B --> C[rankings_to_csv.py (BeautifulSoup)]
   C --> D[SQL Staging (Tables/ Staging/)]
   D --> E[Procedures & Functions (sf_*/sp_*)]
@@ -468,9 +468,9 @@ Located in `ETL/Extractor/`, these modules perform the **primary data extraction
 
 **B. Rankings Scrapers (headless) + Parser**
 
-* `Transform/Ranking Scrapping/Ranking_scrapping.py` — downloads **official ATP rankings HTML** in **headless mode** and stores full HTML as text (`rankings_YYYY-mm-dd.txt`).
+* `Transform/Ranking Scraping/Ranking_scraping.py` — downloads **official ATP rankings HTML** in **headless mode** and stores full HTML as text (`rankings_YYYY-mm-dd.txt`).
   *This design is deliberate:* saving raw HTML first makes the pipeline **finite and reproducible**; you can re‑parse locally without revisiting the site.
-* `Transform/Ranking Scrapping/rankings_to_csv.py` — parses those files and extracts **`ranking`** and **`player_code`** per date (robust to absolute/relative URLs and locale prefixes like `/es/`, `/en/`).
+* `Transform/Ranking Scraping/rankings_to_csv.py` — parses those files and extracts **`ranking`** and **`player_code`** per date (robust to absolute/relative URLs and locale prefixes like `/es/`, `/en/`).
 
 ---
 
@@ -533,8 +533,8 @@ python -m pip install -U webdriver-manager
 ## 3) Fetch rankings HTML & parse
 
 ```bash
-python "Transform/Ranking Scrapping/Ranking_scrapping.py"
-python "Transform/Ranking Scrapping/rankings_to_csv.py"
+python "Transform/Ranking Scraping/Ranking_scraping.py"
+python "Transform/Ranking Scraping/rankings_to_csv.py"
 ```
 
 ## 4) Create staging & run SQL logic
@@ -575,9 +575,8 @@ python "ETL/Extractor/runner.py" all --year {year}
 ```r
 # In R
 source("ETL/Load/CreateData.R")
-# or run the DataTransform*.R scripts inside Transform/Ranking Scrapping/
 ```
-All transformation scripts live in **`Transform/Ranking Scrapping/`** and are designed to run **sequentially**. They progressively build the final **match–player panel** (two rows per match) with mirrored `player_*` / `opponent_*` context.
+All transformation scripts live in **`Transform/`** and are designed to run **sequentially**. They progressively build the final **match–player panel** (two rows per match) with mirrored `player_*` / `opponent_*` context.
 
 > Required packages (typical): `data.table`, `dplyr`, `readr`, `stringr`, `lubridate`, `tidyr`, `purrr`,`progress`,`roll`,`zoo`. Install as needed.
 `
