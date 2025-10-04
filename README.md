@@ -429,7 +429,8 @@ ATP-Match-Outcome-Prediction/
 │  └─ model1.ipynb                    # CV by year, OOF calibration, hold‑out 2023–2025
 │
 ├─ LICENSE
-└─ README.md                          # You are here
+├─ README.md
+└─ requirements.txt
 ```
 
 > **Note on dates file**: the rankings fetcher uses `fechas.txt` populated directly from ATP HTML. Example lines present in that file (as found in source pages):
