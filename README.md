@@ -43,6 +43,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 This dataset is the result of applying the **Extract - Load - Transform** modules.
 A **highly complete** dataset with **207 final variables**, including a drop of more than 30 features.
+>The high number of features is offset by the massive extraction of records from the database. For more advanced projects with neural networks, I recommend conducting research during XGBoost training to find the most informative variables and mass-dropping the rest.
 
 **Conventions (applies to many fields):**
 
