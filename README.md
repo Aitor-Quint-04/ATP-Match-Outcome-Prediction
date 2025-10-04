@@ -556,7 +556,7 @@ Load the scripts in this order:
 # 3) Matches
 # 4) Stats
 
-python "ETL/Extractor/runner.py" tournaments -- year {year}
+python "ETL/Extractor/runner.py" tournaments --year {year}
 
 python "ETL/Extractor/runner.py" players --year {year}
 
