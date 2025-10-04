@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  oracle:
+    image: ${ORACLE_IMAGE}
+    container_name: atp-oracle
+    ports:
+      - "${ORACLE_PORT}:1521"
+    environment:
+      ORACLE_PASSWORD: "${ORACLE_PASSWORD}"
+    volumes:
+      # Datos persistentes de Oracle
+      - atp_oradata:/opt/oracle/oradata
+      # Scripts de auto-init (sólo primera vez tras crear el volumen)
+      - ./SQL/init:/container-entrypoint-initdb.d
+    restart: unless-stopped
+
+volumes:
+  atp_oradata:
