@@ -486,9 +486,9 @@ Located in `ETL/Extractor/`, these modules perform the **primary data extraction
 
 ---
 
-### 3) ETL / Feature Engineering (R)
+### 3) Load / Feature Engineering (R)
 
-* `ETL/Load/CreateData.R` and the series of `Transform/Ranking Scrapping/DataTransform*.R` scripts stitch everything into a **match–player** panel.
+* `ETL/Load/CreateData.R` and the series of `Transform/DataTransform*.R` scripts stitch everything into a **match–player** panel.
 * Feature highlights (mirrored for `player_*` and `opponent_*`):
 
   * **Rest & load:** `*_days_since_prev_tournament`, `*_weeks_since_prev_tournament`, `*_prev_tour_matches`.
