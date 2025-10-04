@@ -670,7 +670,7 @@ cat("\nAll transforms finished. Check the exported dataset (e.g., database_99-25
 
 Open **`MODEL/model1.ipynb`** and run all cells to reproduce: **CV by year**, **OOF calibration**, and **hold‑out 2023–2025**.
 
-> A tiny sample lives in `Data_Example/sample.csv` for quick sanity checks.
+> A tiny sample lives in `Data_Sample/Data_Sample.csv` for quick sanity checks.
 
 ---
 
