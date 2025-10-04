@@ -467,6 +467,10 @@ ATP-Match-Outcome-Prediction/
 ├─ MODEL/
 │  └─ model1.ipynb                    # CV by year, OOF calibration, hold‑out 2023–2025
 │
+├─ figs/
+│     ├─ diff_accuracy_line.png
+│     ├─ diff_auc_line.png
+│     └─ diff_logloss_line.png
 ├─ LICENSE
 ├─ README.md
 └─ requirements.txt
