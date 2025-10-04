@@ -1,6 +1,6 @@
-# ATP Match Outcome Prediction — *A crown‑jewel dataset + a model that really delivers*
+# ATP Match Outcome Prediction — **a curated, long-horizon dataset** + a calibrated baseline that outperforms strong controls
 
-> **Tagline:** *End‑to‑end ETL + scalable feature engineering + calibrated XGBoost delivering state‑of‑the‑art tennis match win probabilities. Built for reproducibility. Designed for sports analytics.*
+> **Tagline:** *End‑to‑end ETL + scalable feature engineering + calibrated XGBoost with transparent validation. Built for reproducibility. Designed for sports analytics.*
 
 ---
 
