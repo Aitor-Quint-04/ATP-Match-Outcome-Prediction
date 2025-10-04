@@ -1,0 +1,6 @@
+Where the ranking dates come from
+The list of historical ATP ranking dates is parsed directly from the HTML of the official Singles rankings page at atptour.com. In the page’s markup, right after the “countries” section (the block that powers the country filter), there’s a sequence of archived ranking dates (e.g., 2025-09-22, 2025-09-15, …). Those identifiers represent the Mondays on which the ATP published rankings, and they span the site’s full historical archive.
+
+Our scraper simply reads that date list and lets you choose which dates to process when building the historical rankings dataset (you can process all of them, or a subset that fits your resources and goals).
+
+Note: the exact HTML structure can evolve; if the ATP updates the page layout, the scraper may need small selector tweaks. The canonical source is the Singles rankings page itsel
