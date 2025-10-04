@@ -1,23 +1,23 @@
 # --- Core data & modeling ---
-pandas~=2.2
-numpy~=1.26
-scipy~=1.11
-scikit-learn~=1.4
-xgboost>=2.0
+pandas
+numpy
+scipy
+scikit-learn
+xgboost
 
 # --- Scraping & parsing ---
-requests~=2.31
-beautifulsoup4~=4.12
-lxml~=5.1
-selenium~=4.21
-webdriver-manager~=4.0
+requests
+beautifulsoup4
+lxml
+selenium
+webdriver-manager
 
 # --- Utils ---
-python-dateutil~=2.9
-pytz~=2024.1
-tqdm~=4.66
+python-dateutil
+pytz
+tqdm
 
 # --- Notebooks & viz ---
-jupyterlab~=4.2
-ipykernel~=6.29
-matplotlib~=3.8
+jupyterlab
+ipykernel
+matplotlib
