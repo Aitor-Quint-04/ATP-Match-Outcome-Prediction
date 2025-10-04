@@ -345,6 +345,35 @@ A **highly complete** dataset with **207 final variables**, including a drop of 
 
 **Bottom line:** the system **generalizes** and the **probabilities are calibrated**—a must for risk‑aware decisioning.
 
+<!-- Layout tipo "ladrillos al revés": dos arriba, una centrada debajo -->
+<table align="center" style="border-collapse:collapse;">
+  <tr>
+    <td align="center" style="padding:6px;">
+      <img
+        src="figs/diff_accuracy_line.png"
+        alt="Δ Accuracy (HO − CV)"
+        width="100%">
+      <div style="font-size:12px;color:#666;">Δ Accuracy (HO − CV)</div>
+    </td>
+    <td align="center" style="padding:6px;">
+      <img
+        src="figs/diff_logloss_line.png"
+        alt="Δ LogLoss (HO − CV)"
+        width="100%">
+      <div style="font-size:12px;color:#666;">Δ LogLoss (HO − CV)</div>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center" style="padding:6px;">
+      <img
+        src="figs/diff_auc_line.png"
+        alt="Δ AUC (HO − CV)"
+        width="60%">
+      <div style="font-size:12px;color:#666;">Δ AUC (HO − CV)</div>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## 🗂️ Repository structure (actual file names)
