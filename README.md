@@ -29,7 +29,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
   * **Red‑eye risk** (intercontinental + consecutive week).
   * **Travel fatigue score** (composite).
 * **Cold‑start pre‑1999** with historical seed (Jeff Sackmann): last seen date & tournament prior to 1999, and round normalization (**ER→R128**) for phase alignment.
-* **NOTE:** We used pre-seeding with data from Jeff Sackman due to budget and hardware limitations. This is completely optional, and I strongly recommend that anyone who can extract all the data from the ATP website across all years do so and skip the pre-seeding.
+* **NOTE:** We used pre-seeding with data from Jeff Sackman due to budget and hardware limitations. This is completely optional, and we strongly recommend that anyone who can extract all the data from the ATP website across all years do so and skip the pre-seeding.
 * **Validation that mirrors reality**:
 
   * **Year‑wise cross‑validation (2000–2025)** with an **`id` guarantee** (both rows of a match stay together).
@@ -43,7 +43,7 @@ If you work in **sports analytics**, **quantitative sports trading**, **scouting
 
 This dataset is the result of applying the **Extract - Load - Transform** modules.
 A **highly complete** dataset with **207 final variables**, including a drop of more than 30 features.
->The large number of features is offset by large-scale record extraction for the database. For more advanced projects,optimization or neural network implementations I recommend running a feature-importance analysis during XGBoost training to identify the most informative variables and dropping the rest in bulk.
+>The large number of features is offset by large-scale record extraction for the database. For more advanced projects,optimization or neural network implementations we recommend running a feature-importance analysis during XGBoost training to identify the most informative variables and dropping the rest in bulk.
 
 **Conventions (applies to many fields):**
 
