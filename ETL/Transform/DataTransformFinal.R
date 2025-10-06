@@ -1,25 +1,96 @@
 ####################################################################################################
 # Tennis ML — Correlation audit, feature engineering, NA treatment & Bayesian smoothing (R)
 # --------------------------------------------------------------------------------------------------
-# Purpose
-#   Clean, audit and enrich a player-centric ATP match table (t_players) to prepare it for
-#   downstream modeling. The script:
-#     • Orders data chronologically (anti‑leakage) with a robust helper.
-#     • Audits numeric features via Pearson/Spearman correlations and p‑values.
-#     • Flags highly correlated pairs (> 0.85) and contrasts Pearson vs. Spearman + p‑value.
-#     • Creates domain features (serve/return efficiencies, H2H deltas, discretizations).
-#     • Encodes categorical trends, treats NAs (seeds, durations), and constructs exposure counts.
-#     • Applies Beta‑Binomial smoothing on H2H and Bayesian shrinkage on 34 noisy stats/log‑ratios.
-#     • Computes VIFs from the correlation matrix inverse (quick multicollinearity scan).
+# Executive summary
+#   This script cleans, audits, and enriches a player‑centric ATP table (t_players) prior to modeling.
+#   It enforces temporal ordering (anti‑leakage), audits correlations (Pearson/Spearman with p‑values),
+#   derives domain features (serve/return efficiencies, H2H deltas, discretizations), encodes categorical
+#   trends, treats NAs (seeds, durations, match order), applies Bayesian smoothing (Beta‑Binomial for
+#   H2H and shrinkage across 34 noisy metrics), and reports NA% by year. The mixed dplyr/data.table
+#   style is intentional to minimize churn and preserve reproducibility.
 #
-# Notes on refactor (light, semantics‑preserving)
-#   • Consolidated date handling in order_datasets().
-#   • Safer column drops by intersecting with existing names.
-#   • Sample size for Spearman is now capped to available unique matches.
-#   • Minor NA% computations made robust.
-#   • Removed stray prints; optional outputs kept as commented write.csv.
-#   • Mixed dplyr/data.table is kept to minimize code churn; hot loops remain data.table.
+# Inputs / outputs
+#   • Input: CSV "pred_jugadores_99‑25.csv" in the t_players schema, expected to include at least:
+#     id, year, tournament_start_dtm, tournament_id, tournament_name, stadie_id, match_order,
+#     best_of, surface, player_code, opponent_code, match_ret, player_seed, opponent_seed,
+#     match_duration, and the families referenced in `cols_target` (e.g., *_games_won_pct_avg,
+#     *_aces_per_match_avg, log_ratio_* …).
+#     Note: The script intersects with existing names; missing columns are safely skipped.
+#   • Output: "database_99‑25_1.csv" (default). Adjust path/name in section 10 as needed.
+#
+# Data contracts & assumptions
+#   • Rows are "player vs opponent" instances (commonly 2 per match).
+#   • tournament_start_dtm is coercible to Date and supports chronological sorting.
+#   • stadie_id follows the canonical order: Q1,Q2,Q3,BR,RR,R128,R64,R32,R16,QF,SF,F,3P.
+#   • Percentages may be in [0,1] or [0,100]; smoothing detects scale and normalizes accordingly.
+#   • H2H ratios and totals are used when available; otherwise raw wins are reconstructed and smoothed.
+#
+# Workflow (high‑level)
+#   1) Robust temporal ordering (date → phase → tournament → match_order) to prevent leakage.
+#   2) Correlation audit:
+#       - Full Pearson (pairwise NA) across numeric features.
+#       - Spearman on a sample of up to ~35k unique matches (cost control).
+#       - High‑corr pairs with |r|>0.85 and consistency checks (p<0.05, Spearman).
+#   3) Feature engineering:
+#       - Prestigious non‑GS titles; discretized general‑vs‑surface win‑probability gaps; first/second
+#         serve/return efficiencies; surface‑vs‑general deltas in H2H.
+#   4) NA handling & encoding:
+#       - match_result → binary; flags for retirements (RET) and walkovers (W/O, WEA).
+#       - Rank‑trend categories → ordered integers (‑1, 0, 1).
+#       - Missing seeds → 0; NA snapshot ranked by severity.
+#   5) H2H smoothing (Beta‑Binomial, p0=0.5):
+#       - p̂ = (w + α·p0) / (n + α), with α_full=8 and α_surface=6.
+#       - Credibility signals: n/(n+α) to gate trust.
+#   6) match_duration imputation conditional on (surface, stadie_id, best_of):
+#       - rnorm from cell means/SD; clipped to [60, 300] minutes.
+#       - Note: groups with no history yield NA means/SD; consider a fallback (see Limitations).
+#   7) match_order completion for (tournament_id, stadie_id) when NA.
+#   8) Year‑level NA% across all columns (longitudinal QC).
+#   9) Bayesian smoothing on 34 metrics:
+#       - Proportions → shrink toward global mean with α_prop=20 (auto‑detect 0–1 vs 0–100 + clipping).
+#       - Log‑ratios → shrink to 0 with α_logr=30.
+#       - Means/gaps → shrink to the global mean with α_mean=10.
+#       - Exposure n = cumulative prior matches per role (player/opponent).
+#       - Emits *_was_na flags for post‑imputation traceability.
+#
+# Design choices & safeguards
+#   • Strict anti‑leakage via temporal/competitive ordering; re‑applied at critical points.
+#   • Numerical stability: pmax/pmin guards, clip01 for probabilities, and duration clipping.
+#   • Spearman subsampling at ~35k unique matches to reduce cost and duplication bias.
+#   • Name intersection avoids failures on partial schemas; pipeline is resilient to missing fields.
+#
+# Tunables (easy to adjust)
+#   • High‑correlation threshold: threshold = 0.85 (section 1.5).
+#   • Priors: α_full=8, α_surface=6, p0=0.5; α_prop=20, α_logr=30, α_mean=10.
+#   • Spearman cap: 35,000 unique matches (smp_size).
+#   • Duration clamp: [60, 300] minutes (domain‑dependent).
+#
+# Limitations & practical notes
+#   • match_duration imputation: if a (surface, stadie_id, best_of) cell lacks history,
+#     mean_dur/sd_dur remain NA and imputation is skipped; consider hierarchical fallbacks
+#     (e.g., by surface or global) if you see residual gaps.
+#   • rcorr() on very wide matrices can be memory‑hungry; reduce feature set or process in blocks.
+#   • This script does not persist correlation matrices/plots; export CSVs/figures if you need formal audit deliverables.
+#
+# Reproducibility & performance
+#   • set.seed(123) for stochastic steps; results are reproducible.
+#   • data.table for heavy ops; dplyr for readability (arrange/group_by/mutate).
+#   • Single fwrite at the end; toggle persistence as required by the environment.
+#
+# How to run
+#   1) Set setwd() and confirm input paths/CSV.
+#   2) Verify the presence of key columns (missing ones are safely ignored).
+#   3) Run end‑to‑end; review console output for:
+#       - High‑correlation pairs and their Spearman/p‑value consistency.
+#       - NA% summaries by variable and by year.
+#   4) Consume "database_99‑25_1.csv" as the enriched modeling base.
+#
+# Suggested extensions (optional)
+#   • Export correlation matrices and >threshold pairs to audit files.
+#   • Hierarchical fallbacks for match_duration (by surface → global).
+#   • Visual QA: correlation heatmaps, imputation distributions, shrinkage traces.
 ####################################################################################################
+
 
 # --------------------------------------------------------------------------------------------------
 # Libraries (some are optional; keep installed if you want plots/diagnostics)
