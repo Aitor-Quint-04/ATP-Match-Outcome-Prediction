@@ -90,7 +90,7 @@ Examples:
 
 ## Versioning & reproducibility
 
-- **Python environment**: see `requirements.txt` / `environment.yml`.  
+- **Python environment**: see `requirements.txt`.  
 - **R environment**: packages listed in README (recommend `renv`).  
 - **Makefile**: targets for DB, scraping, ETL, and feature build; demo mode without Oracle using the sample.
 
