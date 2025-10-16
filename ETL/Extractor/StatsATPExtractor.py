@@ -97,7 +97,7 @@ class StatsATPExtractor(baseExtractor):
                            loser_code,
                            REPLACE(stats_url, 'stats-centre', 'match-stats') AS stats_url,
                            stats_url AS original_stats_url
-                    FROM vw_matches
+                    FROM vw_atp_matches
                     WHERE stats_url IS NOT NULL
                       AND series_id != 'dc'
                       AND (win_aces IS NULL OR los_aces IS NULL)
