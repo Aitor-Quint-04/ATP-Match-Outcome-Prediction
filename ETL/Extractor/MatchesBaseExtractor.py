@@ -1,7 +1,7 @@
 from typing import Dict, Optional, List, Tuple
-from base_extractor import baseExtractor  
+from base_extractor import BaseExtractor  
 
-class MatchesBaseExtractor(baseExtractor):
+class MatchesBaseExtractor(BaseExtractor):
     """
     Base utilities for match-related extraction and score parsing.
 
