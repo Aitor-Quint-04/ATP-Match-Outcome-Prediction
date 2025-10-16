@@ -3,10 +3,10 @@ import os
 import re
 from lxml import html
 
-from base_extractor import baseExtractor  
+from base_extractor import BaseExtractor  
 
 
-class PlayersATPExtractor(baseExtractor):
+class PlayersATPExtractor(BaseExtractor):
     """
     Extract ATP player profiles for a given year and stage them into `stg_players`.
 
