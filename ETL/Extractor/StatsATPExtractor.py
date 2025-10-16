@@ -3,11 +3,11 @@ import os
 import re
 from lxml import html
 
-from base_extractor import baseExtractor  
+from base_extractor import BaseExtractor  
 from constants import DURATION_IN_DAYS
 
 
-class StatsATPExtractor(baseExtractor):
+class StatsATPExtractor(BaseExtractor):
     """
     Extract per-match statistics from atptour.com 'match-stats' pages and stage them
     into `stg_matches`.
