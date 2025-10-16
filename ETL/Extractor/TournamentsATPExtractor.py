@@ -3,11 +3,11 @@ from urllib.parse import urljoin
 from lxml import html
 import os
 
-from base_extractor import baseExtractor  
+from base_extractor import BaseExtractor  
 from constants import ATP_URL_PREFIX, ATP_TOURNAMENT_SERIES
 
 
-class TournamentsATPExtractor(baseExtractor):
+class TournamentsATPExtractor(BaseExtractor):
     """
     Extract ATP tournament metadata for a given year from atptour.com.
 
